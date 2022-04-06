@@ -1,22 +1,16 @@
 import React from 'react'
+import { Navigate } from 'react-router-dom';
 
-export default function Header() {
+export default function Header(props) {
+    const roles = props.userDetails.roles.split(',');
+    const rolesDropdown = roles.map((role,i) => <a key={i} className="nav-link" href="#" onClick={ (e) => { e.preventDefault(); sessionStorage.setItem('role',role); alert(`Role Changed to ${role}`); props.setRole(role) } } ><i className="fa fa-user"></i> {role}</a>);
+    // console.log(roles);
     return (
         <header id="header" className="header">
-
             <div className="header-menu">
-
                 <div className="col-sm-7">
                     <a id="menuToggle" className="menutoggle pull-left"><i className="fa fa fa-tasks"></i></a>
                     <div className="header-left">
-                        <button className="search-trigger"><i className="fa fa-search"></i></button>
-                        <div className="form-inline">
-                            <form className="search-form">
-                                <input className="form-control mr-sm-2" type="text" placeholder="Search ..." aria-label="Search" />
-                                <button className="search-close" type="submit"><i className="fa fa-close"></i></button>
-                            </form>
-                        </div>
-
                         <div className="dropdown for-notification">
                             <button className="btn btn-secondary dropdown-toggle" type="button" id="notification" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <i className="fa fa-bell"></i>
@@ -92,36 +86,12 @@ export default function Header() {
                         </a>
 
                         <div className="user-menu dropdown-menu">
-                            <a className="nav-link" href="#"><i className="fa fa-user"></i> My Profile</a>
-
-                            <a className="nav-link" href="#"><i className="fa fa-user"></i> Notifications <span className="count">13</span></a>
-
-                            <a className="nav-link" href="#"><i className="fa fa-cog"></i> Settings</a>
-
-                            <a className="nav-link" href="#"><i className="fa fa-power-off"></i> Logout</a>
+                            {
+                             rolesDropdown   
+                            }
+                            <a className="nav-link" href="#" onClick={(e)=>{ e.preventDefault(); sessionStorage.removeItem('login');sessionStorage.removeItem('userDetails');sessionStorage.removeItem('role'); return <Navigate to="/" />   }}><i className="fa fa-power-off"></i> Logout</a>
                         </div>
                     </div>
-
-                    <div className="language-select dropdown" id="language-select">
-                        <a className="dropdown-toggle" href="#" data-toggle="dropdown" id="language" aria-haspopup="true" aria-expanded="true">
-                            <i className="flag-icon flag-icon-us"></i>
-                        </a>
-                        <div className="dropdown-menu" aria-labelledby="language">
-                            <div className="dropdown-item">
-                                <span className="flag-icon flag-icon-fr"></span>
-                            </div>
-                            <div className="dropdown-item">
-                                <i className="flag-icon flag-icon-es"></i>
-                            </div>
-                            <div className="dropdown-item">
-                                <i className="flag-icon flag-icon-us"></i>
-                            </div>
-                            <div className="dropdown-item">
-                                <i className="flag-icon flag-icon-it"></i>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 

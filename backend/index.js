@@ -94,3 +94,21 @@ app.post('/getsubjectdetailbyid', (req, res) => {
         }
     })
 });
+
+app.post('/getMenuRoleWise', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT path FROM `user_menu` WHERE cid=? AND post=?', [data.userDetails.cid, data.role], (err, rows, fields) => {
+        if (!err){
+            let menu = `<li style="font-size:16px;font-weight:bold;color:white;" class="navbar-brand">${data.userDetails.name}<br />Employee ID:${data.userDetails.id}</span></a>
+        </li><li>
+        <a href="/dashboard"> <i class="menu-icon fa fa-dashboard"></i>Dashboard </a>
+    </li>`;
+            for (let index = 0; index < rows.length; index++) {
+                menu+=rows[index].path;
+            }
+            res.send(menu);
+        }else{
+            console.log(err);
+        }
+    })
+});

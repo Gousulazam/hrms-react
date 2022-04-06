@@ -68,6 +68,7 @@ export default function MappingCo(props) {
                 <hr style={hrStyle} />
                 <h4 className="mt-2 text-center mb-3">Academic Year {state.academicYear}</h4>
                 <table className="table table-bordered ">
+                    <thead>
                     <tr>
                         <th>Course Name</th>
                         <td>{subjectDetails['sname']}</td>
@@ -80,19 +81,20 @@ export default function MappingCo(props) {
                         <th>Sem</th>
                         <td>{subjectDetails['sem']}</td>
                     </tr>
+                    </thead>
                 </table>
-                <h5 class="mb-2"><u>Course Outcomes</u></h5>
+                <h5 className="mb-2"><u>Course Outcomes</u></h5>
                 <form onSubmit={addCo}>
-                    <table class="table table-bordered maintable">
-                        <thead class="thead-dark">
+                    <table className="table table-bordered maintable">
+                        <thead className="thead-dark">
                             <tr>
-                                <th rowspan="2" class='text-center align-middle'>CO Identification No</th>
-                                <th class='text-center'>CO Statement</th>
-                                <th rowspan="2" class='text-center align-middle'>HOD</th>
-                                <th rowspan="2" class='text-center align-middle'>Add / Delete </th>
+                                <th rowSpan="2" className='text-center align-middle'>CO Identification No</th>
+                                <th className='text-center'>CO Statement</th>
+                                <th rowSpan="2" className='text-center align-middle'>HOD</th>
+                                <th rowSpan="2" className='text-center align-middle'>Add / Delete </th>
                             </tr>
                             <tr>
-                                <th class='text-center'>At the end of the course, the students will be able to</th>
+                                <th className='text-center'>At the end of the course, the students will be able to</th>
                             </tr>
                         </thead>
                         <tbody id='atten'>

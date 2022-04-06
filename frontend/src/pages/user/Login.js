@@ -19,7 +19,7 @@ export default function Login(props) {
                     props.setLogin(sessionStorage.getItem('login'));
                     sessionStorage.setItem('userDetails',JSON.stringify(response.data[0]))
                     props.setUserDetails(JSON.parse(sessionStorage.getItem('userDetails')));
-                    // console.log(sessionStorage.getItem('userDetails'));
+                    sessionStorage.setItem('role',JSON.parse(sessionStorage.getItem('userDetails')).roles.split(",")[0]);
                     navigate("/dashboard");
                 }else{
                     swal("Wrong Credentials","", "warning");
