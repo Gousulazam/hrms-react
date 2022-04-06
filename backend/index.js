@@ -86,7 +86,7 @@ app.post('/getsubjectoptionbyfidandacademicyear', (req, res) => {
 
 app.post('/getsubjectdetailbyid', (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT sname,scode,sem,dept,academic_year FROM `subject` WHERE id=?', [data.id], (err, rows, fields) => {
+    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
         if (!err) {
             res.send(rows);
         } else {
