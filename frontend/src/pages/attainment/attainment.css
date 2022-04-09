@@ -1,0 +1,29 @@
+.add_new,
+.edit,
+.delete:hover {
+  cursor: pointer;
+
+}
+
+.add_new,
+.delete,
+.edit {
+  font-size: 35px;
+
+}
+
+.add_new {
+  color: #28A745;
+}
+
+.delete {
+  color: #DC3545;
+}
+
+.edit {
+  color: #FBBC05;
+}
+
+.hc {
+  display: none;
+}

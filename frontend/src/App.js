@@ -7,6 +7,10 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AddCo from './pages/attainment/AddCo';
 import MappingCo from './pages/attainment/MappingCo';
+import SubjectReport from './pages/reports/SubjectReport';
+import ReportSubject from './pages/reports/ReportSubject';
+import ViewCo from './pages/attainment/ViewCo';
+import CoView from './pages/attainment/CoView';
 
 function App() {
   const Dashboard = () => {
@@ -50,7 +54,11 @@ function App() {
               <Route path="/" element={<Login setLogin={setLogin} baseURL={baseURL} setUserDetails={setUserDetails} setRole={setRole} />} />
               <Route path="/dashboard" element={<Dashboard />} force='refresh' />
               <Route path="/addco" element={<AddCo baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/mappingco" element={<MappingCo baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
