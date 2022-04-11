@@ -13,6 +13,7 @@ import ViewCo from './pages/attainment/ViewCo';
 import CoView from './pages/attainment/CoView';
 import ViewQuestionPaper from './pages/attainment/ViewQuestionPaper';
 import HandlingSubject from './pages/reports/HandlingSubject';
+import AddEresouce from './pages/eresource/AddEresouce';
 
 function App() {
   const Dashboard = () => {
@@ -63,6 +64,7 @@ function App() {
               <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
