@@ -49,7 +49,7 @@ export default function SubjectReport(props) {
                 <div className="card-body">
                     <div className="form-group">
                         <label htmlFor="semtype">Academic Year</label>
-                        <select className="form-control" name="academic_year" required="d" onChange={e => { setAcademicYear(e.target.value) }} id="academic_year" dangerouslySetInnerHTML={{ __html: academicYearOption }}>
+                        <select className="form-control" name="academic_year" required="" onChange={e => { setAcademicYear(e.target.value) }} id="academic_year" dangerouslySetInnerHTML={{ __html: academicYearOption }}>
                         </select>
                     </div>
 
@@ -70,11 +70,11 @@ export default function SubjectReport(props) {
 
                     <div class="form-group">
                         <label htmlFor="">From Date</label>
-                        <input type="date" class="form-control" name="fdate" id="fdate" onChange={e => { setFdate(e.target.value) }} aria-describedby="helpId" placeholder="" />
+                        <input required type="date" class="form-control" name="fdate" id="fdate" onChange={e => { setFdate(e.target.value) }} aria-describedby="helpId" placeholder="" />
                     </div>
                     <div class="form-group">
                         <label htmlFor="">To Date</label>
-                        <input type="date" class="form-control" name="tdate" id="tdate" onChange={e => { setTdate(e.target.value) }} aria-describedby="helpId" placeholder="" />
+                        <input required type="date" class="form-control" name="tdate" id="tdate" onChange={e => { setTdate(e.target.value) }} aria-describedby="helpId" placeholder="" />
                     </div>
                 </div>
                 <div className="card-footer">

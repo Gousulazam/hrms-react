@@ -11,6 +11,8 @@ import SubjectReport from './pages/reports/SubjectReport';
 import ReportSubject from './pages/reports/ReportSubject';
 import ViewCo from './pages/attainment/ViewCo';
 import CoView from './pages/attainment/CoView';
+import ViewQuestionPaper from './pages/attainment/ViewQuestionPaper';
+import HandlingSubject from './pages/reports/HandlingSubject';
 
 function App() {
   const Dashboard = () => {
@@ -59,6 +61,8 @@ function App() {
               <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
