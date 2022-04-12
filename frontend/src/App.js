@@ -50,7 +50,7 @@ function App() {
     <>
       {login && <Sidebar userDetails={userDetails} setRole={setRole} role={role} baseURL={baseURL} />}
       <div id="right-panel" className="right-panel">
-        {login && <Header userDetails={userDetails} setRole={setRole} />}
+        {login && <Header userDetails={userDetails} setRole={setRole} baseURL={baseURL} />}
         <div className="content mt-3">
           <BrowserRouter>
             <Routes>

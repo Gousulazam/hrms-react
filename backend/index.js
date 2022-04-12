@@ -458,3 +458,57 @@ app.delete('/deleteresource/:id', (req, res) => {
     })
     // console.log();
 });
+
+app.get('/getcollegeoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,name FROM college WHERE prt=1`, (err, rows, fields) => {
+        if (!err){
+            let option = `<option value="">Select College</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                const element = rows[index];
+                option += `<option value="${element.id}">${element.name}</option>`; 
+            }
+
+            res.send(option);
+        }
+        else{
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getdepartmenteoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,name FROM dept WHERE cid='${data.cid}'`, (err, rows, fields) => {
+        if (!err){
+            let option = `<option value="">Select Department</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                const element = rows[index];
+                option += `<option value="${element.id}">${element.name}</option>`; 
+            }
+
+            res.send(option);
+        }
+        else{
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getemployeeeoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,name,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM admin a WHERE cid='${data.cid}' AND did='${data.did}' AND status='approved'`, (err, rows, fields) => {
+        if (!err){
+            let option = `<option value="">Select Department</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                const element = rows[index];
+                option += `<option value="${element.id}">${element.name} (${element.roles})</option>`; 
+            }
+
+            res.send(option);
+        }
+        else{
+            console.log(err);
+        }
+    })
+});

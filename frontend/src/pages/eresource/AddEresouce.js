@@ -131,7 +131,7 @@ export default function AddEresouce(props) {
                     settbody(response.data);
                 });
         } else {
-            settbody("<tr><td colspan='8' className='text-center font-weight-bold text-danger' >Please Select Academic Year</td></tr>");
+            settbody("<tr><td colspan='8' class='text-center font-weight-bold text-danger' >Please Select Academic Year</td></tr>");
         }
     }, [pacademicYear])
 
@@ -152,7 +152,7 @@ export default function AddEresouce(props) {
                             <td>{ element.title }</td>
                             <td>{ element.utp }</td>
                             <td>{ element.utp == "LINK" ? <a href={element.path} target="_blank" rel="noopener noreferrer"><i className="fa fa-link" aria-hidden="true"></i>{element.path}</a> : <a href={element.path} target="_blank" rel="noopener noreferrer" className='btn btn-info rounded'><i className="fa fa-download" aria-hidden="true"></i> Download</a>}</td>
-                            <td><button className="btn btn-danger rounded" onClick={deleteResource} value={element.id} >Delete</button></td>
+                            <td><button className="btn btn-danger rounded" onClick={deleteResource} value={element.id} ><i class="fa fa-trash-o" aria-hidden="true"></i> Delete</button></td>
                         </tr>
                     })
                 );

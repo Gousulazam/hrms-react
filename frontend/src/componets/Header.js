@@ -1,10 +1,49 @@
-import React from 'react'
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { Navigate } from 'react-router-dom';
 
 export default function Header(props) {
     const roles = props.userDetails.roles.split(',');
-    const rolesDropdown = roles.map((role,i) => <a key={i} className="nav-link" href="#" onClick={ (e) => { e.preventDefault(); sessionStorage.setItem('role',role); alert(`Role Changed to ${role}`); props.setRole(role) } } ><i className="fa fa-user"></i> {role}</a>);
-    // console.log(roles);
+    const rolesDropdown = roles.map((role, i) => <a key={i} className="nav-link" href="#" onClick={(e) => { e.preventDefault(); sessionStorage.setItem('role', role); alert(`Role Changed to ${role}`); props.setRole(role) }} ><i className="fa fa-user"></i> {role}</a>);
+    const [collegeOption, setcollegeOption] = useState(`<option value="">Select College</option>`);
+    const [cid, setcid] = useState("");
+    const [departmentOption, setdepartmentOption] = useState(`<option value="">Select Department</option>`);
+    const [did, setdid] = useState("");
+    const [userOption, setuserOption] = useState(`<option value="">Select Department</option>`);
+    const [fid, setfid] = useState("");
+
+    useEffect(() => {
+        axios.get(`${props.baseURL}/getcollegeoption`)
+            .then((response) => {
+                if (response.data.length > 0) {
+                    setcollegeOption(response.data);
+                }
+            });
+    }, [])
+    useEffect(() => {
+        if(cid!=''){
+            axios.post(`${props.baseURL}/getdepartmenteoption`,{cid:cid})
+            .then((response) => {
+                if (response.data.length > 0) {
+                    setdepartmentOption(response.data);
+                }
+            });
+        }else{
+           setdepartmentOption(`<option value="">Select Department</option>`); 
+        }
+    }, [cid])
+    useEffect(() => {
+        if(cid!=''){
+            axios.post(`${props.baseURL}/getemployeeeoption`,{cid:cid,did:did})
+            .then((response) => {
+                if (response.data.length > 0) {
+                    setuserOption(response.data);
+                }
+            });
+        }else{
+           setdepartmentOption(`<option value="">Select Department</option>`); 
+        }
+    }, [did])
     return (
         <header id="header" className="header">
             <div className="header-menu">
@@ -78,7 +117,24 @@ export default function Header(props) {
                         </div>
                     </div>
                 </div>
+                <form  method="post">
+                    <div class="row">
+                        <div class="input-group col-sm-3">
+                            <select name="clg56" id="clg56" required="" onChange={e=> setcid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:collegeOption}}>
+                            </select>
+                        </div>
+                        <div class="input-group col-sm-3">
+                            <select name="dept56" id="dept56" required="" onChange={e=> setdid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:departmentOption}}>
+                            </select>
+                        </div>
+                        <div class="input-group col-sm-3">
+                            <select name="emp56" id="emp56" required="" onChange={e=> setfid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:userOption}}>
+                            </select>
+                        </div>
 
+                        <input type="submit" class="btn btn-primary rounded" value="Submit"/>
+                    </div>
+                </form>
                 <div className="col-sm-5">
                     <div className="user-area dropdown float-right">
                         <a href="#" className="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -87,12 +143,13 @@ export default function Header(props) {
 
                         <div className="user-menu dropdown-menu">
                             {
-                             rolesDropdown   
+                                rolesDropdown
                             }
-                            <a className="nav-link" href="#" onClick={(e)=>{ e.preventDefault(); sessionStorage.removeItem('login');sessionStorage.removeItem('userDetails');sessionStorage.removeItem('role'); return <Navigate to="/" />   }}><i className="fa fa-power-off"></i> Logout</a>
+                            <a className="nav-link" href="#" onClick={(e) => { e.preventDefault(); sessionStorage.removeItem('login'); sessionStorage.removeItem('userDetails'); sessionStorage.removeItem('role'); return <Navigate to="/" /> }}><i className="fa fa-power-off"></i> Logout</a>
                         </div>
                     </div>
                 </div>
+               
             </div>
 
         </header>
