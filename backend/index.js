@@ -1,11 +1,15 @@
 const mysql = require('mysql');
 const express = require('express');
+const fileupload = require("express-fileupload");
 const bodyparser = require('body-parser');
 const cors = require('cors');
 var app = express();
 //Configuring express server
-app.use(bodyparser.json());
 app.use(cors());
+app.use(fileupload());
+app.use(express.static("files"));
+app.use(bodyparser.json());
+app.use(bodyparser.urlencoded({ extended: true }));
 
 //MySQL details
 var mysqlConnection = mysql.createConnection({
@@ -261,7 +265,7 @@ app.post('/getquestionpaper', (req, res) => {
 
 app.post('/getfacultyhandlingsubject', (req, res) => {
     let data = req.body;
-    
+
     if (data.semType != '') {
         mysqlConnection.query(`SELECT id,sname,scode,dv,sem,fname,dept,batch FROM subject WHERE fid='${data.fid}' AND sem%2='${data.semType}' AND academic_year='${data.academicYear}' ORDER BY sem,scode ASC,stype DESC`, (err, rows, fields) => {
             if (!err) {
@@ -284,12 +288,12 @@ app.post('/getfacultyhandlingsubject', (req, res) => {
                     let sl = index + 1;
                     let dv = "-";
                     let batch = "-";
-                    if(element.dv!=''){
-                        dv=element.dv;
+                    if (element.dv != '') {
+                        dv = element.dv;
                     }
 
-                    if(element.batch!=''){
-                        batch=element.batch;
+                    if (element.batch != '') {
+                        batch = element.batch;
                     }
                     result += `<tr>
                         <td>${sl}</td>
@@ -333,57 +337,118 @@ app.post('/getMenuRoleWise', (req, res) => {
 
 app.post('/getpreviousyeareresource', (req, res) => {
     let data = req.body;
-    mysqlConnection.query(`SELECT scode,dv FROM subject WHERE id='${data.subject}'`,(err, rows1, fields) => {
+    mysqlConnection.query(`SELECT subject,scode,sem,dv,title,utp,path FROM esrc WHERE fid='${data.fid}' AND academic_year='${data.academicYear}'`, (err, rows, fields) => {
         if (!err) {
-            mysqlConnection.query(`SELECT subject,scode,sem,dv,title,utp,path FROM esrc WHERE fid='${data.fid}' AND scode='${rows1[0].scode}' AND dv='${rows1[0].dv}' AND academic_year='${data.academicYear}'`, (err, rows, fields) => {
-                if (!err) {
-                    let tbody = ``;
-                    for (let index = 0; index < rows.length; index++) {
-                        let slno = index+1;
-                        let element = rows[index];
-                        let sem=element.sem;
-                        if(element.dv!=''){
-                            sem=`${element.sem} (${element.dv})`;
-                        }
-                        let download = `<a href="${element.path}" target="_blank" rel="noopener noreferrer" class='btn btn-info rounded'><i class="fa fa-download" aria-hidden="true"></i> Download</a>`;
-                        tbody += `<tr>
-                            <td>${slno}</td>
-                            <td>${element.subject}</td>
-                            <td>${element.scode}</td>
-                            <td>${sem}</td>
-                            <td>${element.title}</td>
-                            <td>${element.utp}</td>
-                            <td>${download}</td>
-                        </tr>`;
-                    }
-                    res.send(tbody);
-                } else {
-                    console.log(err);
+            let tbody = ``;
+            for (let index = 0; index < rows.length; index++) {
+                let slno = index + 1;
+                let element = rows[index];
+                let sem = element.sem;
+                let download = ``;
+                if (element.dv != '') {
+                    sem = `${element.sem} (${element.dv})`;
                 }
-            })
+
+                if (element.utp == "LINK") {
+                    download = `<a href="${element.path}" target="_blank" rel="noopener noreferrer"><i class="fa fa-link" aria-hidden="true"></i>${element.path}</a>`;
+                } else {
+                    download = `<a href="${element.path}" target="_blank" rel="noopener noreferrer" class='btn btn-info rounded'><i class="fa fa-download" aria-hidden="true"></i> Download</a>`;
+                }
+                tbody += `<tr>
+                    <td>${slno}</td>
+                    <td>${element.subject}</td>
+                    <td>${element.scode}</td>
+                    <td>${sem}</td>
+                    <td>${element.title}</td>
+                    <td>${element.utp}</td>
+                    <td>${download}</td>
+                </tr>`;
+            }
+            res.send(tbody);
         } else {
             console.log(err);
         }
     })
 });
 
+app.post('/getcurrentyeareresource', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,subject,scode,sem,dv,title,utp,path FROM esrc WHERE fid='${data.fid}' AND academic_year=(SELECT MAX(academic_year) FROM academic_year WHERE cid='${data.cid}')`, (err, rows1, fields) => {
+        if (!err){
+            res.send(rows1);
+        } else {
+            console.log(err);
+        }
+    })
+});
 
 app.post('/adderesource', (req, res) => {
     let data = req.body;
-    mysqlConnection.query(`SELECT sname,scode,fid,fname,dept,did,dv,sem,academic_year FROM subject WHERE id='${data.subject}'`,(err, rows1, fields) => {
+    mysqlConnection.query(`SELECT sname,scode,fid,fname,dept,did,dv,sem,academic_year,(SELECT MAX(id)+1 FROM esrc) as max_id FROM subject s WHERE id='${data.subject}'`, (err, rows1, fields) => {
         if (!err) {
-            let subjectDetails = rows1;
-            let path='';
+            let subjectDetails = rows1[0];
+            let path = '';
             let oldPath = '';
-            if(data.ftype == 'LINK'){
-                path=data.link;
-                oldPath=data.link;
+            if (data.ftype == 'LINK') {
+                path = data.link;
+                oldPath = data.link;
+                sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
+                mysqlConnection.query(sql, (err, rows2, fields) => {
+                    if (!err) {
+                        res.send(rows2);
+                    } else {
+                        console.log(err);
+                    }
+                })
+            } else {
+                const newpath = __dirname + "/upload/resource/";
+                const file = req.files.file;
+                oldPath = file.name;
+                file.name=`${subjectDetails['max_id']}_${subjectDetails['scode']}_${subjectDetails['fname']}.`+file.name.split('.')[1];
+                const filename = file.name;
+                path = `${newpath}${filename}`;
+                
+                file.mv(`${newpath}${filename}`, (err) => {
+                    if (err) {
+                        let h =[];
+                        h['insertId']=0
+                        res.send(h);
+                    }
+                    
+                sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
+                mysqlConnection.query(sql, (err, rows2, fields) => {
+                    if (!err) {
+                        res.send(rows2);
+                    } else {
+                        console.log(err);
+                    }
+                })
+                });
+                 
             }
-            sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
-            mysqlConnection.query(sql,(err, rows2, fields) => {
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.delete('/deleteresource/:id', (req, res) => {
+    let data = req.params;
+    const fs = require('fs')
+    let path = __dirname + "/upload/resource/";
+    mysqlConnection.query(`SELECT path,utp FROM esrc  WHERE id='${data.id}'`, (err, rows, fields) => {
+        if (!err) {
+            let file = rows[0].path.split("/");
+            let filename = file[file.length - 1];
+            path+=filename;
+            mysqlConnection.query(`DELETE FROM esrc  WHERE id='${data.id}'`, (err, rows1, fields) => {
                 if (!err) {
-                    res.send(rows2);
+                    if(rows[0].utp !="LINK"){
+                        fs.unlinkSync(path)
+                    }
+                    res.send([1])
                 } else {
+                    res.send([0])
                     console.log(err);
                 }
             })
@@ -391,4 +456,5 @@ app.post('/adderesource', (req, res) => {
             console.log(err);
         }
     })
+    // console.log();
 });
