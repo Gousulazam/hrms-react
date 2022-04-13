@@ -100,7 +100,7 @@ app.post('/getsubjectoptionbyfidandacademicyear', (req, res) => {
 
 app.post('/getsubjectdetailbyid', (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=? ORDER BY name ASC', [data.id], (err, rows, fields) => {
+    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
         if (!err) {
             res.send(rows);
         } else {
@@ -563,9 +563,9 @@ app.post('/addscheme', (req, res) => {
             let oldPath = '';
             const newpath = __dirname + "/upload/scheme/";
             const file = req.files.file;
-            if(subjectDetails['dv']!=''){
+            if (subjectDetails['dv'] != '') {
                 file.name = `S_${subjectDetails['max_id']}_${subjectDetails['scode']}_${subjectDetails['dv']}.` + file.name.split('.')[1];
-            }else{
+            } else {
                 file.name = `S_${subjectDetails['max_id']}_${subjectDetails['scode']}.` + file.name.split('.')[1];
             }
 
@@ -617,7 +617,7 @@ app.delete('/deletescheme/:id', (req, res) => {
             path += filename;
             mysqlConnection.query(`DELETE FROM intu  WHERE id='${data.id}'`, (err, rows1, fields) => {
                 if (!err) {
-                        fs.unlinkSync(path)
+                    fs.unlinkSync(path)
                     res.send([1]);
                 } else {
                     res.send([0]);
@@ -641,13 +641,13 @@ app.post('/getpreviousyearscheme', (req, res) => {
                 let element = rows[index];
                 let sem = element.sem;
                 let download = ``;
-                
+
                 if (element.dv != '') {
                     sem = `${element.sem} (${element.dv})`;
                 }
-                
+
                 download = `<a href="${element.path}" target="_blank" rel="noopener noreferrer" class='btn btn-info rounded'><i class="fa fa-download" aria-hidden="true"></i> Download</a>`;
-                
+
                 tbody += `<tr>
                     <td>${slno}</td>
                     <td>${element.subject}</td>
