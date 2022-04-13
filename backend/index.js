@@ -41,6 +41,16 @@ app.post('/checkuser', (req, res) => {
     })
 });
 
+app.post('/masterlogin', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,title,name,cid,did,role,photo,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM admin a WHERE id='${req.body.fid}'`, (err, rows, fields) => {
+        if (!err)
+            res.send(rows);
+        else
+            console.log(err);
+    })
+});
+
 app.post('/getacademicyearoption', (req, res) => {
     let data = req.body;
     mysqlConnection.query('SELECT academic_year FROM `academic_year` WHERE cid=? ORDER BY academic_year DESC', [data.cid], (err, rows, fields) => {
@@ -90,7 +100,7 @@ app.post('/getsubjectoptionbyfidandacademicyear', (req, res) => {
 
 app.post('/getsubjectdetailbyid', (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
+    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=? ORDER BY name ASC', [data.id], (err, rows, fields) => {
         if (!err) {
             res.send(rows);
         } else {
@@ -374,7 +384,7 @@ app.post('/getpreviousyeareresource', (req, res) => {
 app.post('/getcurrentyeareresource', (req, res) => {
     let data = req.body;
     mysqlConnection.query(`SELECT id,subject,scode,sem,dv,title,utp,path FROM esrc WHERE fid='${data.fid}' AND academic_year=(SELECT MAX(academic_year) FROM academic_year WHERE cid='${data.cid}')`, (err, rows1, fields) => {
-        if (!err){
+        if (!err) {
             res.send(rows1);
         } else {
             console.log(err);
@@ -404,27 +414,27 @@ app.post('/adderesource', (req, res) => {
                 const newpath = __dirname + "/upload/resource/";
                 const file = req.files.file;
                 oldPath = file.name;
-                file.name=`${subjectDetails['max_id']}_${subjectDetails['scode']}_${subjectDetails['fname']}.`+file.name.split('.')[1];
+                file.name = `${subjectDetails['max_id']}_${subjectDetails['scode']}_${subjectDetails['fname']}.` + file.name.split('.')[1];
                 const filename = file.name;
                 path = `${newpath}${filename}`;
-                
+
                 file.mv(`${newpath}${filename}`, (err) => {
                     if (err) {
-                        let h =[];
-                        h['insertId']=0
+                        let h = [];
+                        h['insertId'] = 0
                         res.send(h);
                     }
-                    
-                sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
-                mysqlConnection.query(sql, (err, rows2, fields) => {
-                    if (!err) {
-                        res.send(rows2);
-                    } else {
-                        console.log(err);
-                    }
-                })
+
+                    sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
+                    mysqlConnection.query(sql, (err, rows2, fields) => {
+                        if (!err) {
+                            res.send(rows2);
+                        } else {
+                            console.log(err);
+                        }
+                    })
                 });
-                 
+
             }
         } else {
             console.log(err);
@@ -440,10 +450,10 @@ app.delete('/deleteresource/:id', (req, res) => {
         if (!err) {
             let file = rows[0].path.split("/");
             let filename = file[file.length - 1];
-            path+=filename;
+            path += filename;
             mysqlConnection.query(`DELETE FROM esrc  WHERE id='${data.id}'`, (err, rows1, fields) => {
                 if (!err) {
-                    if(rows[0].utp !="LINK"){
+                    if (rows[0].utp != "LINK") {
                         fs.unlinkSync(path)
                     }
                     res.send([1])
@@ -462,16 +472,16 @@ app.delete('/deleteresource/:id', (req, res) => {
 app.get('/getcollegeoption', (req, res) => {
     let data = req.body;
     mysqlConnection.query(`SELECT id,name FROM college WHERE prt=1`, (err, rows, fields) => {
-        if (!err){
+        if (!err) {
             let option = `<option value="">Select College</option>`;
             for (let index = 0; index < rows.length; index++) {
                 const element = rows[index];
-                option += `<option value="${element.id}">${element.name}</option>`; 
+                option += `<option value="${element.id}">${element.name}</option>`;
             }
 
             res.send(option);
         }
-        else{
+        else {
             console.log(err);
         }
     })
@@ -480,16 +490,16 @@ app.get('/getcollegeoption', (req, res) => {
 app.post('/getdepartmenteoption', (req, res) => {
     let data = req.body;
     mysqlConnection.query(`SELECT id,name FROM dept WHERE cid='${data.cid}'`, (err, rows, fields) => {
-        if (!err){
+        if (!err) {
             let option = `<option value="">Select Department</option>`;
             for (let index = 0; index < rows.length; index++) {
                 const element = rows[index];
-                option += `<option value="${element.id}">${element.name}</option>`; 
+                option += `<option value="${element.id}">${element.name}</option>`;
             }
 
             res.send(option);
         }
-        else{
+        else {
             console.log(err);
         }
     })
@@ -498,16 +508,158 @@ app.post('/getdepartmenteoption', (req, res) => {
 app.post('/getemployeeeoption', (req, res) => {
     let data = req.body;
     mysqlConnection.query(`SELECT id,name,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM admin a WHERE cid='${data.cid}' AND did='${data.did}' AND status='approved'`, (err, rows, fields) => {
-        if (!err){
+        if (!err) {
             let option = `<option value="">Select Department</option>`;
             for (let index = 0; index < rows.length; index++) {
                 const element = rows[index];
-                option += `<option value="${element.id}">${element.name} (${element.roles})</option>`; 
+                option += `<option value="${element.id}">${element.name} (${element.roles})</option>`;
             }
 
             res.send(option);
         }
-        else{
+        else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getcurrentfacultysubjectsoption', (req, res) => {
+    let data = req.body;
+    var option = `<option value="">Select Subject</option>`;
+    if (data.semType != '') {
+        mysqlConnection.query(`SELECT id,sname,scode,dv,sem,batch FROM subject s WHERE fid='${data.fid}' AND academic_year=(SELECT MAX(academic_year) FROM academic_year WHERE cid=s.cid) ORDER BY sem,scode ASC,stype DESC`, (err, rows, fields) => {
+            if (!err) {
+                for (let index = 0; index < rows.length; index++) {
+                    if (rows[index].dv != '') {
+                        if (rows[index].batch != '') {
+                            option += `<option value="${rows[index].id}">${rows[index].sem}(${rows[index].dv})-${rows[index].sname}(${rows[index].scode})-${rows[index].batch}</option>`;
+                        } else {
+                            option += `<option value="${rows[index].id}">${rows[index].sem}(${rows[index].dv})-${rows[index].sname}(${rows[index].scode})</option>`
+                        }
+                    } else {
+                        if (rows[index].batch != '') {
+                            option += `<option value="${rows[index].id}">${rows[index].sem}-${rows[index].sname}(${rows[index].scode})-${rows[index].batch}</option>`
+                        } else {
+                            option += `<option value="${rows[index].id}">${rows[index].sem}-${rows[index].sname}(${rows[index].scode})</option>`
+                        }
+                    }
+                }
+                res.send(option);
+            } else {
+                console.log(err);
+            }
+        })
+    } else {
+        res.send(option);
+    }
+});
+
+app.post('/addscheme', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT sname,scode,fid,fname,dept,did,dv,sem,academic_year,(SELECT MAX(id)+1 FROM intu) as max_id FROM subject s WHERE id='${data.subject}'`, (err, rows1, fields) => {
+        if (!err) {
+            let subjectDetails = rows1[0];
+            let path = '';
+            let oldPath = '';
+            const newpath = __dirname + "/upload/scheme/";
+            const file = req.files.file;
+            if(subjectDetails['dv']!=''){
+                file.name = `S_${subjectDetails['max_id']}_${subjectDetails['scode']}_${subjectDetails['dv']}.` + file.name.split('.')[1];
+            }else{
+                file.name = `S_${subjectDetails['max_id']}_${subjectDetails['scode']}.` + file.name.split('.')[1];
+            }
+
+            const filename = file.name;
+            oldPath = file.name;
+            path = `${newpath}${filename}`;
+
+            file.mv(`${newpath}${filename}`, (err) => {
+                if (err) {
+                    let h = [];
+                    h['insertId'] = 0
+                    res.send(h);
+                }
+
+                sql = `INSERT INTO intu(subject,scode, fid, fname, cid, did, dept, dv, sem, utype, itype, date, path, path_old,academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.cid}','${subjectDetails.did}','${subjectDetails.dept}','${subjectDetails.dv}','${subjectDetails.sem}','Scheme','${data.internal}','${data.date}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
+                mysqlConnection.query(sql, (err, rows2, fields) => {
+                    if (!err) {
+                        res.send(rows2);
+                    } else {
+                        console.log(err);
+                    }
+                })
+            });
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getcurrentyearscheme', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,subject,scode,sem,dv,utype,itype,path FROM intu WHERE fid='${data.fid}' AND academic_year=(SELECT MAX(academic_year) FROM academic_year WHERE cid='${data.cid}') ORDER BY sem,scode,itype ASC`, (err, rows1, fields) => {
+        if (!err) {
+            res.send(rows1);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.delete('/deletescheme/:id', (req, res) => {
+    let data = req.params;
+    const fs = require('fs')
+    let path = __dirname + "/upload/scheme/";
+    mysqlConnection.query(`SELECT path FROM intu  WHERE id='${data.id}'`, (err, rows, fields) => {
+        if (!err) {
+            let file = rows[0].path.split("/");
+            let filename = file[file.length - 1];
+            path += filename;
+            mysqlConnection.query(`DELETE FROM intu  WHERE id='${data.id}'`, (err, rows1, fields) => {
+                if (!err) {
+                        fs.unlinkSync(path)
+                    res.send([1]);
+                } else {
+                    res.send([0]);
+                    console.log(err);
+                }
+            })
+        } else {
+            console.log(err);
+        }
+    })
+    // console.log();
+});
+
+app.post('/getpreviousyearscheme', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query(`SELECT id,subject,scode,sem,dv,utype,itype,path FROM intu WHERE fid='${data.fid}' AND academic_year='${data.academicYear}'`, (err, rows, fields) => {
+        if (!err) {
+            let tbody = ``;
+            for (let index = 0; index < rows.length; index++) {
+                let slno = index + 1;
+                let element = rows[index];
+                let sem = element.sem;
+                let download = ``;
+                
+                if (element.dv != '') {
+                    sem = `${element.sem} (${element.dv})`;
+                }
+                
+                download = `<a href="${element.path}" target="_blank" rel="noopener noreferrer" class='btn btn-info rounded'><i class="fa fa-download" aria-hidden="true"></i> Download</a>`;
+                
+                tbody += `<tr>
+                    <td>${slno}</td>
+                    <td>${element.subject}</td>
+                    <td>${element.scode}</td>
+                    <td>${sem}</td>
+                    <td>${element.utype}</td>
+                    <td>${element.itype}</td>
+                    <td>${download}</td>
+                </tr>`;
+            }
+            res.send(tbody);
+        } else {
             console.log(err);
         }
     })

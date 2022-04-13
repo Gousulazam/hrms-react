@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Navigate } from 'react-router-dom';
+import swal from 'sweetalert';
 
 export default function Header(props) {
     const roles = props.userDetails.roles.split(',');
@@ -44,6 +45,26 @@ export default function Header(props) {
            setdepartmentOption(`<option value="">Select Department</option>`); 
         }
     }, [did])
+
+    const masterLogin = (e) =>{
+        e.preventDefault();
+        axios.post(`${props.baseURL}/masterlogin`, {
+            fid
+        })
+            .then((response) => {
+                if (response.data.length > 0) {
+                    sessionStorage.setItem('login',true);
+                    sessionStorage.setItem('masterLogin',true);
+                    props.setLogin(sessionStorage.getItem('login'));
+                    sessionStorage.setItem('userDetails',JSON.stringify(response.data[0]))
+                    props.setUserDetails(JSON.parse(sessionStorage.getItem('userDetails')));
+                    sessionStorage.setItem('role',JSON.parse(sessionStorage.getItem('userDetails')).roles.split(",")[0]);
+                    window.location.reload();
+                }else{
+                    swal("Error...!","", "error");
+                }
+            });
+    }
     return (
         <header id="header" className="header">
             <div className="header-menu">
@@ -117,24 +138,24 @@ export default function Header(props) {
                         </div>
                     </div>
                 </div>
-                <form  method="post">
-                    <div class="row">
-                        <div class="input-group col-sm-3">
-                            <select name="clg56" id="clg56" required="" onChange={e=> setcid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:collegeOption}}>
+                {sessionStorage.getItem('masterLogin') == 'true' && <form  onSubmit={masterLogin}>
+                    <div className="row">
+                        <div className="input-group col-sm-3">
+                            <select required onChange={e=> setcid(e.target.value)} className="form-control" dangerouslySetInnerHTML={{__html:collegeOption}}>
                             </select>
                         </div>
-                        <div class="input-group col-sm-3">
-                            <select name="dept56" id="dept56" required="" onChange={e=> setdid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:departmentOption}}>
+                        <div className="input-group col-sm-3">
+                            <select required onChange={e=> setdid(e.target.value)} className="form-control" dangerouslySetInnerHTML={{__html:departmentOption}}>
                             </select>
                         </div>
-                        <div class="input-group col-sm-3">
-                            <select name="emp56" id="emp56" required="" onChange={e=> setfid(e.target.value)} class="form-control" dangerouslySetInnerHTML={{__html:userOption}}>
+                        <div className="input-group col-sm-3">
+                            <select required onChange={e=> setfid(e.target.value)} className="form-control" dangerouslySetInnerHTML={{__html:userOption}}>
                             </select>
                         </div>
 
-                        <input type="submit" class="btn btn-primary rounded" value="Submit"/>
+                        <button className="btn btn-primary rounded" type="submit">Submit</button>
                     </div>
-                </form>
+                </form>}
                 <div className="col-sm-5">
                     <div className="user-area dropdown float-right">
                         <a href="#" className="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

@@ -16,7 +16,7 @@ export default function AddEresouce(props) {
     const [ftype, setFtype] = useState("");
     const [link, setLink] = useState("");
     const [title, setTitle] = useState("");
-    const [pdf, setPdf] = useState("")
+    const [pdf, setPdf] = useState("");
     const [changeEvent, setchangeEvent] = useState(0)
 
     const addResource = (e) => {

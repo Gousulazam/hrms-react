@@ -14,6 +14,7 @@ import CoView from './pages/attainment/CoView';
 import ViewQuestionPaper from './pages/attainment/ViewQuestionPaper';
 import HandlingSubject from './pages/reports/HandlingSubject';
 import AddEresouce from './pages/eresource/AddEresouce';
+import Scheme from './pages/scheme/Scheme';
 
 function App() {
   const Dashboard = () => {
@@ -50,7 +51,7 @@ function App() {
     <>
       {login && <Sidebar userDetails={userDetails} setRole={setRole} role={role} baseURL={baseURL} />}
       <div id="right-panel" className="right-panel">
-        {login && <Header userDetails={userDetails} setRole={setRole} baseURL={baseURL} />}
+        {login && <Header userDetails={userDetails} setRole={setRole} baseURL={baseURL} setLogin={setLogin} setUserDetails={setUserDetails} />}
         <div className="content mt-3">
           <BrowserRouter>
             <Routes>
@@ -65,6 +66,7 @@ function App() {
               <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
