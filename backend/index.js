@@ -764,3 +764,58 @@ app.post('/getsubjectreportdetails', (req, res) => {
         }
     })
 });
+
+app.post('/viewattendance', (req, res) => {
+    let data = req.body;
+
+    mysqlConnection.query(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
+        if (!err) {
+            let subjectDetails = rows[0];
+            let classTaken = await promisePool.query(`SELECT id,stim,etim,(SELECT topicd FROM tlsnpln WHERE id=c.lp_id) AS topic FROM class c WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND acd_year='${subjectDetails.academic_year}' AND date='${data.fdate}'`)
+            let table = ``;
+            if(classTaken[0].length > 0){
+                for (let i = 0; i < classTaken[0].length; i++) {
+                    const classDetails = classTaken[0][i];
+                    table+= `<table style="text-align:center" class="table table-bordered table-striped table1 text-uppercase" id="hide">
+                <thead class="thead-dark">
+                    <tr>
+                    <th colspan="2">Topic:  ${classDetails.topic}</th>
+                    <th colspan="2">  <br>Start Time: ${classDetails.stim}   End Time: ${classDetails.etim}</th></tr>
+                    <tr>
+                        <th>Sl No</th>
+                         <th>USN</th>
+                         <th>Name</th>                          
+                        <th>Status</th>    
+                    </tr>
+                </thead>
+                <tbody>`;
+                console.log(`SELECT  sa.student_id,si.usn,si.name FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`)
+                let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name,sa.atn FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`);
+                for (let j = 0; j < studentList[0].length; j++) {
+                    const studentDetails = studentList[0][j];
+                    let status = ``;
+                    if(studentDetails.atn > 0){
+                        status = `Present`                
+                    }else{
+                        status = `Absent`
+                    }
+                    table+=`<tr>
+                        <td>${j+1}</td>
+                        <td>${studentDetails.usn}</td>
+                        <td>${studentDetails.name}</td>
+                        <td>${status}</td>
+                    </tr>`;
+                    
+                }
+                table+=`</tbody>
+                </table>`;
+                }
+            }else{
+                table="<span class='text-danger font-weight-bold'>Attendance Not Taken</span>";
+            }
+            res.send(table);
+        } else {
+            console.log(err);
+        }
+    })
+});
