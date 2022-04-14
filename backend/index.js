@@ -1,4 +1,5 @@
 const mysql = require('mysql');
+const mysql2 = require('mysql2');
 const express = require('express');
 const fileupload = require("express-fileupload");
 const bodyparser = require('body-parser');
@@ -19,13 +20,22 @@ var mysqlConnection = mysql.createConnection({
     database: 'semes',
     multipleStatements: true
 });
+
+const pool = mysql2.createPool({
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'semes',
+    multipleStatements: true
+});
+
 mysqlConnection.connect((err) => {
     if (!err)
         console.log('Connection Established Successfully');
     else
         console.log('Connection Failed!' + JSON.stringify(err, undefined, 2));
 });
-
+const promisePool = pool.promise();
 //Establish the server connection
 //PORT ENVIRONMENT VARIABLE
 const port = process.env.PORT || 5000;
@@ -659,6 +669,96 @@ app.post('/getpreviousyearscheme', (req, res) => {
                 </tr>`;
             }
             res.send(tbody);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.get('/test', async (req, res) => {
+    let data = req.body;
+    let rows = await promisePool.query(`SELECT * FROM academic_year`);
+    res.send(rows[0]);
+});
+
+app.post('/getsubjectreportdetails', (req, res) => {
+    let data = req.body;
+
+    mysqlConnection.query(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
+        if (!err) {
+            let subjectDetails = rows[0];
+            let classTaken = await promisePool.query(`SELECT date FROM class WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND acd_year='${subjectDetails.academic_year}' AND date BETWEEN '${data.fdate}' AND '${data.tdate}'`)
+            let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND scd='${subjectDetails.scode}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`)
+            let tbody = ``;
+            let dateTr = ``;
+            let countTr = ``;
+            let percentage = 0;
+            for (let i = 0; i < studentList[0].length; i++) {
+                const studentDetails = studentList[0][i];
+                tbody += `<tr>
+                <td>${i + 1}</td>
+                <td>${studentDetails['usn']}</td>
+                <td>${studentDetails['name']}</td>`;
+                let classAttended = 0;
+                for (let j = 0; j < classTaken[0].length; j++) {
+                    const today = new Date(classTaken[0][j]['date']);
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var mm = String(today.getMonth() + 1).padStart(2, '0'); 
+                    var yyyy = today.getFullYear();
+
+                    let date =`${yyyy}-${mm}-${dd}`;
+                    let status = ``;
+                    let checkAttendance = await promisePool.query(`SELECT atn FROM attend WHERE student_id='${studentDetails['student_id']}' AND scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND date='${date}'`)
+                    if (checkAttendance[0].length > 0) {
+                        if (checkAttendance[0][0].atn > 0) {
+                            classAttended++;
+                        status = `<span class="text-success font-weight-bold text-center">P</span>`;
+                    } else {
+                        status = `<span class="text-danger font-weight-bold text-center">A</span>`;
+                    }
+                    } else {
+                        status = `<span class="text-danger font-weight-bold text-center">A</span>`;
+                    }
+                    tbody += `<td>${status}</td>`;
+                    if (i == 0) {
+                        dateTr += `<th>${date}</th>`;
+                        countTr += `<th>${j + 1}</th>`;
+                    }
+                }
+                if (classTaken[0].length != 0) {
+                    percentage = classAttended / classTaken[0].length * 100;
+                    percentage = percentage.toString().substring(0, 4);
+                } else {
+                    percentage = 0;
+                }
+                tbody += `<td>${classAttended}</td> <td>${percentage}</td> </tr>`;
+            }
+            let table = `<table class="table table-bordered text-center">
+            <thead class="thead-dark">
+                <tr>
+				    <th colspan="${classTaken[0].length + 5}" class="text-capitalize text-center">classes conducted ${classTaken[0].length}</th>
+                </tr>
+                <tr class="text-uppercase">
+                    <th rowspan="3">sl no</th>
+                    <th rowspan="3">usn</th>
+                    <th rowspan="3">name</th>
+				
+                    <th colspan="${classTaken[0].length}">attended</th>	
+                    <th rowspan="3">Total</th>						
+                    <th rowspan="3">percentage</th>	
+                </tr>
+                <tr>
+                ${countTr}
+                </tr>
+                <tr>
+                ${dateTr}
+                </tr>
+            </thead>
+            <tbody>
+            ${tbody}
+            </tbody>
+        </table>`;
+            res.send(table);
         } else {
             console.log(err);
         }

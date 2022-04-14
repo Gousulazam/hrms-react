@@ -15,6 +15,8 @@ import ViewQuestionPaper from './pages/attainment/ViewQuestionPaper';
 import HandlingSubject from './pages/reports/HandlingSubject';
 import AddEresouce from './pages/eresource/AddEresouce';
 import Scheme from './pages/scheme/Scheme';
+import SubjectReportDetails from './pages/reports/SubjectReportDetails';
+import ReportSubjectDetails from './pages/reports/ReportSubjectDetails';
 
 function App() {
   const Dashboard = () => {
@@ -67,6 +69,8 @@ function App() {
               <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/subjectreportdetails" element={<SubjectReportDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
