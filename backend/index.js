@@ -887,7 +887,6 @@ app.post('/getiareport',  (req, res) => {
         }
         
         let qp= await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
-        // res.send(qp[0]);
         for (let k = 0; k < qp[0].length; k++) {
             const element = qp[0][k];
             if (element['qno'].includes('part')) {
@@ -914,6 +913,7 @@ app.post('/getiareport',  (req, res) => {
                 b++;
             }
         }
+
         let count = parts.length;
         let partsMaxMarks = [];
     for (let l = 0; l < count; l++) {
@@ -932,18 +932,19 @@ app.post('/getiareport',  (req, res) => {
     }
     return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
     }
-    mysqlConnection.query('SELECT scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], async (err, rows, fields) => {
+    mysqlConnection.query('SELECT fid,scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], async (err, rows, fields) => {
         if (!err) {
-            let subjectDetails = rows[0];
+            let subjectDetails = rows[0]
             
                 let tbody = ``;
                 let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND scd='${subjectDetails.scode}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`)
                 for (let index = 0; index < studentList[0].length; index++) {
                     const element = studentList[0][index];
-                    let ia1 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"i",subjectDetails.fid);
-                    let ia2 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"ii",subjectDetails.fid);
-                    let ia3= await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"iii",subjectDetails.fid);
-                    let average = ia1+ia2+ia3/3;
+                    let ia1 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"i",subjectDetails.fid)/2;
+                    let ia2 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"ii",subjectDetails.fid)/2;
+                    let ia3= await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"iii",subjectDetails.fid)/2;
+                    let average = Math.round(ia1)+Math.round(ia2)+Math.round(ia3)/3;
+                    console.log("ia1="+ia1);
                     tbody += `<tr>
                     <td>${index + 1}</td>
                     <td>${element.usn}</td>
