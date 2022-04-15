@@ -20,6 +20,11 @@ export default function Login(props) {
                     sessionStorage.setItem('userDetails',JSON.stringify(response.data[0]))
                     props.setUserDetails(JSON.parse(sessionStorage.getItem('userDetails')));
                     sessionStorage.setItem('role',JSON.parse(sessionStorage.getItem('userDetails')).roles.split(",")[0]);
+                    if(response.data[0].id == 265){
+                        sessionStorage.setItem('masterLogin',true);
+                    }else{
+                        sessionStorage.setItem('masterLogin',false);
+                    }
                     navigate("/dashboard");
                 }else{
                     swal("Wrong Credentials","", "warning");
