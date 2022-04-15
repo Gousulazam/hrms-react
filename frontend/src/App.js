@@ -13,6 +13,7 @@ import ViewCo from './pages/attainment/ViewCo';
 import CoView from './pages/attainment/CoView';
 import ViewQuestionPaper from './pages/attainment/ViewQuestionPaper';
 import HandlingSubject from './pages/reports/HandlingSubject';
+<<<<<<< HEAD
 import AddEresouce from './pages/eresource/AddEresouce';
 import Scheme from './pages/scheme/Scheme';
 import SubjectReportDetails from './pages/reports/SubjectReportDetails';
@@ -21,6 +22,16 @@ import ViewAttendance from './pages/reports/ViewAttendance';
 import AttendanceView from './pages/reports/AttendanceView';
 import IaReport from './pages/reports/IaReport';
 import ReportIa from './pages/reports/ReportIa';
+=======
+import Admissionform from './pages/Student-module/Admissionform';
+import Getviewstudent from './pages/Student-module/Getviewstudent';
+import Getstudentlist from './pages/Student-module/Getstudentlist';
+import Getupdatestudentlist from './pages/Student-module/Getupdatestudentlist';
+import Updatestudentlist from './pages/Student-module/Updatestudentlist';
+import Editstudentdetail from './pages/Student-module/Editstudentdetail';
+import Getdeletestudent from './pages/Student-module/Getdeletestudent';
+import Deletestudentlist from './pages/Student-module/Deletestudentlist';
+>>>>>>> 9bd385534e44fffff6bb664abb0540c78597ff7f
 
 function App() {
   const Dashboard = () => {
@@ -57,7 +68,7 @@ function App() {
     <>
       {login && <Sidebar userDetails={userDetails} setRole={setRole} role={role} baseURL={baseURL} />}
       <div id="right-panel" className="right-panel">
-        {login && <Header userDetails={userDetails} setRole={setRole} baseURL={baseURL} setLogin={setLogin} setUserDetails={setUserDetails} />}
+        {login && <Header userDetails={userDetails} setRole={setRole} />}
         <div className="content mt-3">
           <BrowserRouter>
             <Routes>
@@ -68,9 +79,10 @@ function App() {
               <Route path="/mappingco" element={<MappingCo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/reportsubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
+<<<<<<< HEAD
               <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/subjectreportdetails" element={<SubjectReportDetails baseURL={baseURL} userDetails={userDetails}/>} />
@@ -79,6 +91,16 @@ function App() {
               <Route path="/attendanceview" element={<AttendanceView baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/iareport" element={<IaReport baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/reportia" element={<ReportIa baseURL={baseURL} userDetails={userDetails}/>} />
+=======
+              <Route path="/admissionform" element={<Admissionform baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/getviewstudent" element={<Getviewstudent baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/getstudentlist" element={<Getstudentlist baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/getupdatestudentlist" element={<Getupdatestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/Updatestudentlist" element={<Updatestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/editstudentdetail" element={<Editstudentdetail baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/getdeletestudent" element={<Getdeletestudent baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/deletestudentlist" element={<Deletestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
+>>>>>>> 9bd385534e44fffff6bb664abb0540c78597ff7f
             </Routes>
           </BrowserRouter>
         </div>
