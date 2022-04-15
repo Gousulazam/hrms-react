@@ -19,6 +19,8 @@ import SubjectReportDetails from './pages/reports/SubjectReportDetails';
 import ReportSubjectDetails from './pages/reports/ReportSubjectDetails';
 import ViewAttendance from './pages/reports/ViewAttendance';
 import AttendanceView from './pages/reports/AttendanceView';
+import IaReport from './pages/reports/IaReport';
+import ReportIa from './pages/reports/ReportIa';
 
 function App() {
   const Dashboard = () => {
@@ -75,6 +77,8 @@ function App() {
               <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/viewattendance" element={<ViewAttendance baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/attendanceview" element={<AttendanceView baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/iareport" element={<IaReport baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/reportia" element={<ReportIa baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
