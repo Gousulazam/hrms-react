@@ -330,3 +330,138 @@ app.post('/getMenuRoleWise', (req, res) => {
         }
     })
 });
+
+app.post('/getacademicdepartmentoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name,id FROM `dept` WHERE cid=? AND academic=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Department</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].id}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getquotaoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name,v_name FROM `fee_quota` WHERE cid=? AND status=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Quota</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].v_name}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getcategoriesoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name FROM `fee_categories` WHERE cid=? AND status=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Quota</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].name}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getsem', (req, res) => {
+    let data = req.body;
+
+    let option = `<option value="">Select Sem</option>`;
+    for (let index = 1; index < 10; index++) {
+        option += `<option value="${index}">${index}</option>`
+    }
+    res.send(option);
+
+});
+
+app.post('/getstudentlist', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT sa.*,si.usn,sa.id AS sid, si.scheme,si.name as studentname,si.mobile FROM `student_academic` sa INNER JOIN `student_info` si ON sa.student_id = si.student_id WHERE sem=? AND sa.did IN(?) AND dv=? AND sa.cid=? AND sa.academic_year=? ORDER BY rno', [data.sem, data.department, data.dv, data.cid, data.academicYear], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getdepartmentdetailsbyid', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT * FROM `dept` WHERE id=?', [data.cid], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getstudentdetail', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT si.*,sa.rno FROM student_info si RIGHT JOIN student_academic sa ON si.student_id=sa.student_id WHERE sa.id=? ', [data.studentId], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/updatestudent', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('UPDATE `student_info` SET usn=?,name=?,user_name=?,did=?,mobile=?,email=?,academic_type=? WHERE student_id in (SELECT student_id FROM `student_academic` WHERE id=?)', [data.usn, data.name, data.usn, data.department, data.mobile, data.email, data.academicType, data.studentId], (err, rows, fields) => {
+        if (!err) {
+            mysqlConnection.query('UPDATE `student_academic` SET rno=?,did=?,sem=?,dv=? WHERE id=?', [data.rno, data.department, data.sem, data.dv, data.studentId], (err, rows, fields) => {
+                if (!err) {
+                    res.send(rows);
+                } else {
+                    console.log(err);
+                }
+            })
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/deleteStudent', (req, res) => {
+    let data = req.body;
+    console.log(data);
+    mysqlConnection.query('DELETE FROM `sub_info` WHERE student_id in (SELECT student_id FROM `student_academic` WHERE id=?) AND sem=? AND academic_year=? AND dv=?', [data.studentId,data.sem,data.academicYear,data.dv], (err, rows, fields) => {
+        if (!err) {
+            mysqlConnection.query('DELETE FROM `student_academic` WHERE id=?', [data.studentId], (err, rows, fields) => {
+                if (!err) {
+                    res.send(rows);
+                } else {
+                    console.log(err);
+                }
+            })
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+
+
