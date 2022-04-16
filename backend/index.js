@@ -108,15 +108,18 @@ app.post('/getsubjectoptionbyfidandacademicyear', (req, res) => {
     }
 });
 
-app.post('/getsubjectdetailbyid', (req, res) => {
+app.post('/getsubjectdetailbyid', async (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
-        if (!err) {
-            res.send(rows);
-        } else {
-            console.log(err);
-        }
-    })
+    let rows = await promisePool.query(`SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM college WHERE id=s.cid) as iname FROM subject s WHERE id='${data.id}'`);
+    res.send(rows[0]);
+
+    // mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
+    //     if (!err) {
+    //         res.send(rows);
+    //     } else {
+    //         console.log(err);
+    //     }
+    // })
 });
 
 app.post('/getsubjectreport', (req, res) => {
@@ -517,9 +520,9 @@ app.post('/getdepartmenteoption', (req, res) => {
 
 app.post('/getemployeeeoption', (req, res) => {
     let data = req.body;
-    mysqlConnection.query(`SELECT id,name,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM admin a WHERE cid='${data.cid}' AND did='${data.did}' AND status='approved'`, (err, rows, fields) => {
+    mysqlConnection.query(`SELECT id,name,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM admin a WHERE cid='${data.cid}' AND did='${data.did}' AND status='approved'  ORDER BY name ASC`, (err, rows, fields) => {
         if (!err) {
-            let option = `<option value="">Select Department</option>`;
+            let option = `<option value="">Select Employee</option>`;
             for (let index = 0; index < rows.length; index++) {
                 const element = rows[index];
                 option += `<option value="${element.id}">${element.name} (${element.roles})</option>`;
@@ -677,15 +680,15 @@ app.post('/getpreviousyearscheme', (req, res) => {
 
 app.get('/test', async (req, res) => {
     let data = req.body;
-    let getIaMarks = async (studentId,scode,did,dv,academicYear,internal,fid) =>{
-        let a=0;
-        let b=0;
+    let getIaMarks = async (studentId, scode, did, dv, academicYear, internal, fid) => {
+        let a = 0;
+        let b = 0;
         let parts = new Array(2);
         for (var n = 0; n < parts.length; n++) {
             parts[n] = new Array(2);
         }
-        
-        let qp= await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
+
+        let qp = await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
         // res.send(qp[0]);
         for (let k = 0; k < qp[0].length; k++) {
             const element = qp[0][k];
@@ -701,11 +704,11 @@ app.get('/test', async (req, res) => {
                 } else {
                     answerSheet1 = await promisePool.query(`SELECT marks FROM nba_marks WHERE student_id='${studentId}' AND scode='${scode}' AND marks_type='internal' AND  internal='${internal}' AND qno='${element['qno']}'  AND academic_year='${academicYear}'`)
                     if (answerSheet1[0].length > 0) {
-                            if(answerSheet1[0][0]['marks'] == 'NA' || answerSheet1[0][0]['marks'] == 'na'){
-                                parts[a][b] = 0
-                            }else{
-                                parts[a][b] = parseInt(answerSheet1[0][0]['marks'])
-                            }
+                        if (answerSheet1[0][0]['marks'] == 'NA' || answerSheet1[0][0]['marks'] == 'na') {
+                            parts[a][b] = 0
+                        } else {
+                            parts[a][b] = parseInt(answerSheet1[0][0]['marks'])
+                        }
                     } else {
                         parts[a][b] = 0;
                     }
@@ -715,24 +718,24 @@ app.get('/test', async (req, res) => {
         }
         let count = parts.length;
         let partsMaxMarks = [];
-    for (let l = 0; l < count; l++) {
-        let implode = parts[l].join(' ');
-        let explode = implode.split('or');
-        let marks = [];
-        let f = 0;
-        for (let m = 0; m < explode.length; m++) {
-            let explode3 = explode[m].split(' ').filter(e =>{ return e!=''});
-            marks[f] = explode3.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-            f++;
+        for (let l = 0; l < count; l++) {
+            let implode = parts[l].join(' ');
+            let explode = implode.split('or');
+            let marks = [];
+            let f = 0;
+            for (let m = 0; m < explode.length; m++) {
+                let explode3 = explode[m].split(' ').filter(e => { return e != '' });
+                marks[f] = explode3.reduce((a, b) => parseInt(a) + parseInt(b), 0);
+                f++;
+            }
+            partsMaxMarks[l] = marks.reduce(function (a, b) {
+                return Math.max(a, b);
+            });
+            console.table(partsMaxMarks)
         }
-        partsMaxMarks[l] = marks.reduce(function(a, b) {
-            return Math.max(a, b);
-        });
-        console.table(partsMaxMarks)
+        return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
     }
-    return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-    }
-    let j =await getIaMarks(data.studentId,data.scode,data.did,data.dv,data.academicYear,data.internal,data.fid)
+    let j = await getIaMarks(data.studentId, data.scode, data.did, data.dv, data.academicYear, data.internal, data.fid)
     console.log(j)
 });
 
@@ -758,19 +761,19 @@ app.post('/getsubjectreportdetails', (req, res) => {
                 for (let j = 0; j < classTaken[0].length; j++) {
                     const today = new Date(classTaken[0][j]['date']);
                     var dd = String(today.getDate()).padStart(2, '0');
-                    var mm = String(today.getMonth() + 1).padStart(2, '0'); 
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
                     var yyyy = today.getFullYear();
 
-                    let date =`${yyyy}-${mm}-${dd}`;
+                    let date = `${yyyy}-${mm}-${dd}`;
                     let status = ``;
                     let checkAttendance = await promisePool.query(`SELECT atn FROM attend WHERE student_id='${studentDetails['student_id']}' AND scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND date='${date}'`)
                     if (checkAttendance[0].length > 0) {
                         if (checkAttendance[0][0].atn > 0) {
                             classAttended++;
-                        status = `<span class="text-success font-weight-bold text-center">P</span>`;
-                    } else {
-                        status = `<span class="text-danger font-weight-bold text-center">A</span>`;
-                    }
+                            status = `<span class="text-success font-weight-bold text-center">P</span>`;
+                        } else {
+                            status = `<span class="text-danger font-weight-bold text-center">A</span>`;
+                        }
                     } else {
                         status = `<span class="text-danger font-weight-bold text-center">A</span>`;
                     }
@@ -828,10 +831,10 @@ app.post('/viewattendance', (req, res) => {
             let subjectDetails = rows[0];
             let classTaken = await promisePool.query(`SELECT id,stim,etim,(SELECT topicd FROM tlsnpln WHERE id=c.lp_id) AS topic FROM class c WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND acd_year='${subjectDetails.academic_year}' AND date='${data.fdate}'`)
             let table = ``;
-            if(classTaken[0].length > 0){
+            if (classTaken[0].length > 0) {
                 for (let i = 0; i < classTaken[0].length; i++) {
                     const classDetails = classTaken[0][i];
-                    table+= `<table style="text-align:center" class="table table-bordered table-striped table1 text-uppercase" id="hide">
+                    table += `<table style="text-align:center" class="table table-bordered table-striped table1 text-uppercase" id="hide">
                 <thead class="thead-dark">
                     <tr>
                     <th colspan="2">Topic:  ${classDetails.topic}</th>
@@ -844,29 +847,29 @@ app.post('/viewattendance', (req, res) => {
                     </tr>
                 </thead>
                 <tbody>`;
-                console.log(`SELECT  sa.student_id,si.usn,si.name FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`)
-                let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name,sa.atn FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`);
-                for (let j = 0; j < studentList[0].length; j++) {
-                    const studentDetails = studentList[0][j];
-                    let status = ``;
-                    if(studentDetails.atn > 0){
-                        status = `Present`                
-                    }else{
-                        status = `Absent`
-                    }
-                    table+=`<tr>
-                        <td>${j+1}</td>
+                    console.log(`SELECT  sa.student_id,si.usn,si.name FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`)
+                    let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name,sa.atn FROM attend sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE class_id='${classDetails.id}' ORDER BY si.usn ASC`);
+                    for (let j = 0; j < studentList[0].length; j++) {
+                        const studentDetails = studentList[0][j];
+                        let status = ``;
+                        if (studentDetails.atn > 0) {
+                            status = `Present`
+                        } else {
+                            status = `Absent`
+                        }
+                        table += `<tr>
+                        <td>${j + 1}</td>
                         <td>${studentDetails.usn}</td>
                         <td>${studentDetails.name}</td>
                         <td>${status}</td>
                     </tr>`;
-                    
-                }
-                table+=`</tbody>
+
+                    }
+                    table += `</tbody>
                 </table>`;
                 }
-            }else{
-                table="<span class='text-danger font-weight-bold'>Attendance Not Taken</span>";
+            } else {
+                table = "<span class='text-danger font-weight-bold'>Attendance Not Taken</span>";
             }
             res.send(table);
         } else {
@@ -876,17 +879,17 @@ app.post('/viewattendance', (req, res) => {
 });
 
 
-app.post('/getiareport',  (req, res) => {
+app.post('/getiareport', (req, res) => {
     let data = req.body;
-    let getIaMarks = async (studentId,scode,did,dv,academicYear,internal,fid) =>{
-        let a=0;
-        let b=0;
+    let getIaMarks = async (studentId, scode, did, dv, academicYear, internal, fid) => {
+        let a = 0;
+        let b = 0;
         let parts = new Array(2);
         for (var n = 0; n < parts.length; n++) {
             parts[n] = new Array(2);
         }
-        
-        let qp= await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
+
+        let qp = await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
         for (let k = 0; k < qp[0].length; k++) {
             const element = qp[0][k];
             if (element['qno'].includes('part')) {
@@ -901,11 +904,11 @@ app.post('/getiareport',  (req, res) => {
                 } else {
                     answerSheet1 = await promisePool.query(`SELECT marks FROM nba_marks WHERE student_id='${studentId}' AND scode='${scode}' AND marks_type='internal' AND  internal='${internal}' AND qno='${element['qno']}'  AND academic_year='${academicYear}'`)
                     if (answerSheet1[0].length > 0) {
-                            if(answerSheet1[0][0]['marks'] == 'NA' || answerSheet1[0][0]['marks'] == 'na'){
-                                parts[a][b] = 0
-                            }else{
-                                parts[a][b] = parseInt(answerSheet1[0][0]['marks'])
-                            }
+                        if (answerSheet1[0][0]['marks'] == 'NA' || answerSheet1[0][0]['marks'] == 'na') {
+                            parts[a][b] = 0
+                        } else {
+                            parts[a][b] = parseInt(answerSheet1[0][0]['marks'])
+                        }
                     } else {
                         parts[a][b] = 0;
                     }
@@ -916,54 +919,81 @@ app.post('/getiareport',  (req, res) => {
 
         let count = parts.length;
         let partsMaxMarks = [];
-    for (let l = 0; l < count; l++) {
-        let implode = parts[l].join(' ');
-        let explode = implode.split('or');
-        let marks = [];
-        let f = 0;
-        for (let m = 0; m < explode.length; m++) {
-            let explode3 = explode[m].split(' ').filter(e =>{ return e!=''});
-            marks[f] = explode3.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-            f++;
+        for (let l = 0; l < count; l++) {
+            let implode = parts[l].join(' ');
+            let explode = implode.split('or');
+            let marks = [];
+            let f = 0;
+            for (let m = 0; m < explode.length; m++) {
+                let explode3 = explode[m].split(' ').filter(e => { return e != '' });
+                marks[f] = explode3.reduce((a, b) => parseInt(a) + parseInt(b), 0);
+                f++;
+            }
+            partsMaxMarks[l] = marks.reduce(function (a, b) {
+                return Math.max(a, b);
+            });
         }
-        partsMaxMarks[l] = marks.reduce(function(a, b) {
-            return Math.max(a, b);
-        });
-    }
-    return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
+        return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
     }
     mysqlConnection.query('SELECT fid,scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], async (err, rows, fields) => {
         if (!err) {
             let subjectDetails = rows[0]
-            
-                let tbody = ``;
-                let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND scd='${subjectDetails.scode}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`)
-                for (let index = 0; index < studentList[0].length; index++) {
-                    const element = studentList[0][index];
-                    let ia1 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"i",subjectDetails.fid)/2;
-                    let ia2 = await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"ii",subjectDetails.fid)/2;
-                    let ia3= await getIaMarks(element.student_id,subjectDetails.scode,subjectDetails.did,subjectDetails.dv,subjectDetails.academic_year,"iii",subjectDetails.fid)/2;
-                    let average = Math.round(ia1)+Math.round(ia2)+Math.round(ia3)/3;
-                    console.log("ia1="+ia1);
-                    tbody += `<tr>
+
+            let tbody = ``;
+            let studentList = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND scd='${subjectDetails.scode}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`)
+            for (let index = 0; index < studentList[0].length; index++) {
+                const element = studentList[0][index];
+                let ia1 = await getIaMarks(element.student_id, subjectDetails.scode, subjectDetails.did, subjectDetails.dv, subjectDetails.academic_year, "i", subjectDetails.fid);
+                let ia2 = await getIaMarks(element.student_id, subjectDetails.scode, subjectDetails.did, subjectDetails.dv, subjectDetails.academic_year, "ii", subjectDetails.fid);
+                let ia3 = await getIaMarks(element.student_id, subjectDetails.scode, subjectDetails.did, subjectDetails.dv, subjectDetails.academic_year, "iii", subjectDetails.fid);
+                let marks = await promisePool.query(`SELECT marks FROM el_assignment_marks WHERE scd='${subjectDetails.scode}' and student_id='${element.student_id}' AND academic_year='${subjectDetails.academic_year}'`)
+                let average = Math.round(ia1) + Math.round(ia2) + Math.round(ia3) / 3;
+                average = average.toString().substring(0,4);
+                let assignmentsMarks=0;
+                if(marks[0].length != 0){
+                    assignmentsMarks=parseInt(marks[0][0]);
+                }
+                let total = average+assignmentsMarks;
+                tbody += `<tr>
                     <td>${index + 1}</td>
                     <td>${element.usn}</td>
                     <td>${element.name}</td>`;
-                    tbody+=`
+                tbody += `
                     <td>${ia1}</td>
                     <td>${ia2}</td>
                     <td>${ia3}</td>
                     <td>${average}</td>
-                    <td>0</td>
-                    <td></td>
+                    <td>${assignmentsMarks}</td>
+                    <td>${total}</td>
                     <td></td>
                 </tr>`;
 
-                }
-                res.send(tbody)
-            
+            }
+            res.send(tbody)
+
         } else {
             console.log(err);
         }
     })
+});
+
+app.post('/getlessonplantopic', async (req, res) => {
+    let data = req.body;
+    if(data.id!=''){
+        mysqlConnection.query(`SELECT sname,scode,sem,dv,cid,did,dept,fid,fname,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
+            if (!err) {
+                let subjectDetails = rows[0];
+                let lessonPlan = await promisePool.query(`SELECT id,topicd FROM tlsnpln WHERE scode='${subjectDetails.scode}' AND sname='${subjectDetails.sname}' AND (fname='${subjectDetails.fname}' || fid='${subjectDetails.fid}') AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND dept='${subjectDetails.dept}' AND did='${subjectDetails.did}' AND planned_date!='0000-00-00' AND (status='' or status='Not Complete') AND academic_year='${subjectDetails.academic_year}'`)
+                let option = `<option value="">Select Topic</option>`;
+                for (let i = 0; i < lessonPlan[0].length; i++) {
+                    const element = lessonPlan[0][i];
+                    option += `<option value="${element.id}">${element.topicd}</option>`;
+                }
+                res.send(option);
+            } else {
+                console.log(err);
+            }
+        })
+    }
+    
 });
