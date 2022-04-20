@@ -29,6 +29,10 @@ import Updatestudentlist from './pages/Student-module/Updatestudentlist';
 import Editstudentdetail from './pages/Student-module/Editstudentdetail';
 import Getdeletestudent from './pages/Student-module/Getdeletestudent';
 import Deletestudentlist from './pages/Student-module/Deletestudentlist';
+import Attendance from './pages/attendance/Attendance';
+import Addattendance from './pages/attendance/Addattendance';
+import LabAttendance from './pages/attendance/LabAttendance';
+import AddLabAttendance from './pages/attendance/AddLabAttendance';
 
 function App() {
   const Dashboard = () => {
@@ -95,6 +99,10 @@ function App() {
               <Route path="/editstudentdetail" element={<Editstudentdetail baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/getdeletestudent" element={<Getdeletestudent baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/deletestudentlist" element={<Deletestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/attendance" element={<Attendance baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/addattendance" element={<Addattendance baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/labattendance" element={<LabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/addlabattendance" element={<AddLabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

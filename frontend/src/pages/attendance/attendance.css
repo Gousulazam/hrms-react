@@ -1,0 +1,44 @@
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+@media only screen and (max-width: 760px),
+(min-device-width: 768px) and (max-device-width: 1050px) {
+
+    /* Force table to not be like tables anymore */
+    table,
+    thead,
+    tbody,
+    th,
+    td,
+    tr {
+        display: block;
+    }
+
+    /* Hide table headers (but not display: none;, for accessibility) */
+    thead td {
+        position: absolute;
+
+    }
+
+
+}
+
+.add_new {
+    color: green;
+}
+
+.delete {
+    color: red;
+}
+
+.add_new,
+.delete {
+    font-size: 27px;
+}
+
+.add_new,
+.delete:hover {
+    cursor: pointer;
+}

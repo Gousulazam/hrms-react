@@ -41,6 +41,19 @@ const promisePool = pool.promise();
 const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Listening on port ${port}..`));
 
+const formatDate = (type,date22) => {
+    var today = new Date(date22);
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+    
+    if(type == 'db'){
+        return `${yyyy}-${mm}-${dd}`;
+    }else{
+        return `${dd}-${mm}-${yyyy}`;
+    }
+}
+
 app.post('/checkuser', (req, res) => {
     let data = req.body;
     mysqlConnection.query('SELECT id,title,name,cid,did,role,photo,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM `admin` a WHERE (email=? OR mobile=?) AND pass=?', [data.email, data.email, data.password], (err, rows, fields) => {
@@ -679,64 +692,9 @@ app.post('/getpreviousyearscheme', (req, res) => {
 });
 
 app.get('/test', async (req, res) => {
-    let data = req.body;
-    let getIaMarks = async (studentId, scode, did, dv, academicYear, internal, fid) => {
-        let a = 0;
-        let b = 0;
-        let parts = new Array(2);
-        for (var n = 0; n < parts.length; n++) {
-            parts[n] = new Array(2);
-        }
-
-        let qp = await promisePool.query(`SELECT qno FROM nba_question WHERE fid='${fid}' AND scode='${scode}' AND internal='${internal}' AND dv='${dv}' AND did='${did}' AND academic_year='${academicYear}' ORDER BY id ASC`);
-        // res.send(qp[0]);
-        for (let k = 0; k < qp[0].length; k++) {
-            const element = qp[0][k];
-            if (element['qno'].includes('part')) {
-                if (element['qno'] == 'part-a') {
-                } else {
-                    a++; //parts array  index Incrementor
-                    b = 0; // question index of new part
-                }
-            } else {
-                if (element['qno'].includes('or')) {
-                    parts[a][b] = element['qno'];
-                } else {
-                    answerSheet1 = await promisePool.query(`SELECT marks FROM nba_marks WHERE student_id='${studentId}' AND scode='${scode}' AND marks_type='internal' AND  internal='${internal}' AND qno='${element['qno']}'  AND academic_year='${academicYear}'`)
-                    if (answerSheet1[0].length > 0) {
-                        if (answerSheet1[0][0]['marks'] == 'NA' || answerSheet1[0][0]['marks'] == 'na') {
-                            parts[a][b] = 0
-                        } else {
-                            parts[a][b] = parseInt(answerSheet1[0][0]['marks'])
-                        }
-                    } else {
-                        parts[a][b] = 0;
-                    }
-                }
-                b++;
-            }
-        }
-        let count = parts.length;
-        let partsMaxMarks = [];
-        for (let l = 0; l < count; l++) {
-            let implode = parts[l].join(' ');
-            let explode = implode.split('or');
-            let marks = [];
-            let f = 0;
-            for (let m = 0; m < explode.length; m++) {
-                let explode3 = explode[m].split(' ').filter(e => { return e != '' });
-                marks[f] = explode3.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-                f++;
-            }
-            partsMaxMarks[l] = marks.reduce(function (a, b) {
-                return Math.max(a, b);
-            });
-            console.table(partsMaxMarks)
-        }
-        return partsMaxMarks.reduce((a, b) => parseInt(a) + parseInt(b), 0);
-    }
-    let j = await getIaMarks(data.studentId, data.scode, data.did, data.dv, data.academicYear, data.internal, data.fid)
-    console.log(j)
+    let classTaken = await promisePool.query(`insert into academic_year(cid,academic_year) VALUES('0','0')`)
+    console.log(classTaken[0])
+    // formatDate('db',"2022-04-19");
 });
 
 app.post('/getsubjectreportdetails', (req, res) => {
@@ -948,12 +906,12 @@ app.post('/getiareport', (req, res) => {
                 let ia3 = await getIaMarks(element.student_id, subjectDetails.scode, subjectDetails.did, subjectDetails.dv, subjectDetails.academic_year, "iii", subjectDetails.fid);
                 let marks = await promisePool.query(`SELECT marks FROM el_assignment_marks WHERE scd='${subjectDetails.scode}' and student_id='${element.student_id}' AND academic_year='${subjectDetails.academic_year}'`)
                 let average = Math.round(ia1) + Math.round(ia2) + Math.round(ia3) / 3;
-                average = average.toString().substring(0,4);
-                let assignmentsMarks=0;
-                if(marks[0].length != 0){
-                    assignmentsMarks=parseInt(marks[0][0]);
+                average = average.toString().substring(0, 4);
+                let assignmentsMarks = 0;
+                if (marks[0].length != 0) {
+                    assignmentsMarks = parseInt(marks[0][0]);
                 }
-                let total = average+assignmentsMarks;
+                let total = average + assignmentsMarks;
                 tbody += `<tr>
                     <td>${index + 1}</td>
                     <td>${element.usn}</td>
@@ -979,7 +937,7 @@ app.post('/getiareport', (req, res) => {
 
 app.post('/getlessonplantopic', async (req, res) => {
     let data = req.body;
-    if(data.id!=''){
+    if (data.id != '') {
         mysqlConnection.query(`SELECT sname,scode,sem,dv,cid,did,dept,fid,fname,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
             if (!err) {
                 let subjectDetails = rows[0];
@@ -995,5 +953,157 @@ app.post('/getlessonplantopic', async (req, res) => {
             }
         })
     }
-    
+
+});
+
+app.post('/getlablessonplantopic', async (req, res) => {
+    let data = req.body;
+    if (data.id != '') {
+        mysqlConnection.query(`SELECT scode,sem,dv,batch,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
+            if (!err) {
+                let subjectDetails = rows[0];
+                let lessonPlan = await promisePool.query(`SELECT id,experiment FROM tlsnpln_lab WHERE scode='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND batch='${subjectDetails.batch}' AND (status='' or status='Not Complete') AND academic_year='${subjectDetails.academic_year}'`)
+                let option = `<option value="">Select Experiment</option>`;
+                for (let i = 0; i < lessonPlan[0].length; i++) {
+                    const element = lessonPlan[0][i];
+                    option += `<option value="${element.id}">${element.experiment}</option>`;
+                }
+                res.send(option);
+            } else {
+                console.log(err);
+            }
+        })
+    }
+
+});
+
+app.post('/getattendancelist', async (req, res) => {
+    let data = req.body;
+    if (data.id != '') {
+        let rows = await promisePool.query(`SELECT sname,scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`);
+        let subjectDetails = rows[0][0];
+        let studentList = await promisePool.query(`SELECT  sa.student_id,sa.scd,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND sa.academic_year='${subjectDetails.academic_year}' AND scd='${subjectDetails.scode}' ORDER BY si.usn ASC`);
+        res.send(studentList[0]);
+    }
+});
+
+app.post('/attendanceAdded', async (req, res) => {
+    let data = req.body;
+    const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const d = new Date(data.date);
+    let day = weekday[d.getDay()];
+    if (data.id != '') {
+        let date = formatDate('db',data.date)
+        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+            if (!err) {
+                let subjectDetails = rows[0];
+                let lpId='';
+                let status='';
+                for (let index = 0; index < data.lessonPlan.length; index++) {
+                    const element = data.lessonPlan[index];
+                    if(element.subTopic!=''){
+                        lpId+=`${element.subTopic},`;
+                    }else{
+                        lpId+=`${element.topic},`;
+                    }
+                    status+=`${element.status},`;
+                }
+                let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+                let upcheck = 0;
+                    if(classInsert[0].insertId > 0){
+                        for (let j = 0; j < data.lessonPlan.length; j++) {
+                            const element1 = data.lessonPlan[j];
+                            let id = 0;
+                            if(element1.subTopic!=''){
+                                id=element1.subTopic;
+                            }else{
+                                id=element1.topic;
+                            }
+                            if(element1.status == "completed"){
+                            let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`); 
+                            if(updateLessonPlan[0].affectedRows > 0){
+                                upcheck++;
+                            }
+                            }else{
+                                upcheck++; 
+                            }
+                            
+                        }
+                        if(upcheck > 0){
+                            let attendanceSubmited=0;
+                        for (let k = 0; k < data.attendnaceData.length; k++) {
+                            const element3 = data.attendnaceData[k];
+                            attendance= await promisePool.query(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.values}','${subjectDetails.academic_year}','${date}')`);
+                            if(attendance[0].insertId > 0){
+                                attendanceSubmited++;
+                            }
+                        }
+                        if(attendanceSubmited > 0){
+                            res.send([{msg:"Attendance Submitted",icon:"success"}]);
+                        }
+                        }
+                    }else{
+                        res.send([{msg:"Class Not Added",icon:"danger"}]);
+                    }
+            } else {
+                console.log(err);
+            }
+        })
+    }
+});
+
+app.post('/labattendanceAdded', async (req, res) => {
+    let data = req.body;
+    const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const d = new Date(data.date);
+    let day = weekday[d.getDay()];
+    if (data.id != '') {
+        let date = formatDate('db',data.date)
+        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+            if (!err) {
+                let subjectDetails = rows[0];
+                let lpId='';
+                let status='';
+                for (let index = 0; index < data.lessonPlan.length; index++) {
+                    const element = data.lessonPlan[index];
+                    lpId+=`${element.topic},`;
+                    status+=`${element.status},`;
+                }
+                let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+                let upcheck = 0;
+                    if(classInsert[0].insertId > 0){
+                        for (let j = 0; j < data.lessonPlan.length; j++) {
+                            const element1 = data.lessonPlan[j];
+                            let id = element1.topic;
+                            if(element1.status == "completed"){
+                            let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln_lab SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`); 
+                            if(updateLessonPlan[0].affectedRows > 0){
+                                upcheck++;
+                            }
+                            }else{
+                                upcheck++; 
+                            }
+                            
+                        }
+                        if(upcheck > 0){
+                            let attendanceSubmited=0;
+                        for (let k = 0; k < data.attendnaceData.length; k++) {
+                            const element3 = data.attendnaceData[k];
+                            attendance= await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.values}','${subjectDetails.academic_year}','${date}')`);
+                            if(attendance[0].insertId > 0){
+                                attendanceSubmited++;
+                            }
+                        }
+                        if(attendanceSubmited > 0){
+                            res.send([{msg:"Attendance Submitted",icon:"success"}]);
+                        }
+                        }
+                    }else{
+                        res.send([{msg:"Class Not Added",icon:"danger"}]);
+                    }
+            } else {
+                console.log(err);
+            }
+        })
+    }
 });

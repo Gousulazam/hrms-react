@@ -57,6 +57,48 @@ export default function MappingCo(props) {
         e.preventDefault();
     };
 
+    for (let index = 0; index < 4; index++) {
+        let co = `C`;
+        if (subjectDetails['sem'] == 1 || subjectDetails['sem'] == 2) {
+            co += `1`;
+        } else if (subjectDetails['sem'] == 3 || subjectDetails['sem'] == 4) {
+            co += `2`;
+        } else if (subjectDetails['sem'] == 5 || subjectDetails['sem'] == 6) {
+            co += `3`;
+        } else if (subjectDetails['sem'] == 7 || subjectDetails['sem'] == 8) {
+            co += `4`;
+        }
+
+        let remainder = subjectDetails['sem'] % 2;
+        if (remainder == 0) {
+            co += 1;
+        } else {
+            co += 0;
+        }
+        if (subjectDetails['scode']) {
+            co += subjectDetails['scode'][5];
+        }
+        tbody[index] = co + "." + sl;
+        // console.log(tbody[index]);
+        sl++;
+
+    }
+
+    const [body, setbody] = useState(tbody.map((role, i) => {
+        return <tr key={i}>
+            <td>{role}</td>
+            <td><textarea required="" name="coStatement[]" className="coStatement form-control" placeholder="Enter CO Statement" cols="80"></textarea></td>
+            <td>-</td>
+            <td>
+                <center className="mt-3">
+                    <i className="fa fa-plus-circle mr-2 add_new hide "></i>
+                    <i className="fa fa-pencil-square mr-2 edit" aria-hidden="true"></i>
+                    <i className="fa fa-times-circle   delete "></i>
+                </center>
+            </td>
+        </tr>
+    }))
+
     return (
         <div className="card">
             <div className="card-body table-responsive">
@@ -109,7 +151,7 @@ export default function MappingCo(props) {
                         </tbody>
                     </table>
                     <center>
-                        <button type="submit" class="btn btn-primary rounded mt-3">Submit</button>
+                        <button type="submit" className="btn btn-primary rounded mt-3">Submit</button>
                     </center>
                 </form>
             </div>
