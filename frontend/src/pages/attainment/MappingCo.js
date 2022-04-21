@@ -92,7 +92,6 @@ export default function MappingCo(props) {
             <td>
                 <center className="mt-3">
                     <i className="fa fa-plus-circle mr-2 add_new hide "></i>
-                    <i className="fa fa-pencil-square mr-2 edit" aria-hidden="true"></i>
                     <i className="fa fa-times-circle   delete "></i>
                 </center>
             </td>

@@ -33,6 +33,10 @@ import Attendance from './pages/attendance/Attendance';
 import Addattendance from './pages/attendance/Addattendance';
 import LabAttendance from './pages/attendance/LabAttendance';
 import AddLabAttendance from './pages/attendance/AddLabAttendance';
+import MappingCoPo from './pages/attainment/MappingCoPo';
+import CopoMapping from './pages/attainment/CopoMapping';
+import AddPso from './pages/attainment/AddPso';
+import PsoAdd from './pages/attainment/PsoAdd';
 
 function App() {
   const Dashboard = () => {
@@ -76,8 +80,8 @@ function App() {
               <Route path="/" element={<Login setLogin={setLogin} baseURL={baseURL} setUserDetails={setUserDetails} setRole={setRole} />} />
               <Route path="/dashboard" element={<Dashboard />} force='refresh' />
               <Route path="/addco" element={<AddCo baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/mappingco" element={<MappingCo baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
@@ -103,6 +107,10 @@ function App() {
               <Route path="/addattendance" element={<Addattendance baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/labattendance" element={<LabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/addlabattendance" element={<AddLabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/copomapping" element={<CopoMapping baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/mappingcopo" element={<MappingCoPo baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/addpso" element={<AddPso baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/psoadd" element={<PsoAdd baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
