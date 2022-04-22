@@ -12,11 +12,10 @@ export default function DepartmentFeeDetails(props) {
     const [year, setYear] = useState(``);
     const coAdd = (e) => {
         e.preventDefault();
-        navigate("/feedetailsdepartment", { state: { academicYear } });
+        navigate("/feedetailsdepartment", { state: { academicYear,did,year } });
     };
-
-    useEffect(() => {
-        axios.post(`${props.baseURL}/getacademicyearoption`, {
+    const test = async () => {
+        await axios.post(`${props.baseURL}/getacademicyearoption`, {
             cid: props.userDetails.cid
         })
             .then((response) => {
@@ -24,9 +23,30 @@ export default function DepartmentFeeDetails(props) {
                     setAcademicYearOption(response.data);
                 }
             });
+        await axios.post(`${props.baseURL}/getfeedepartmentoption`, {
+            cid: props.userDetails.cid,
+            role: sessionStorage.getItem('role'),
+            did: props.userDetails.did
+        })
+            .then((response) => {
+                if (response.data.length > 0) {
+                    setDepartmentOption(response.data);
+                }
+            });
+        await axios.post(`${props.baseURL}/getfeeyearoption`, {
+            cid: props.userDetails.cid,
+        })
+            .then((response) => {
+                if (response.data.length > 0) {
+                    setYearOption(response.data);
+                }
+            });
+    }
+    useEffect(() => {
+        test()
     }, [])
 
-    
+
 
 
     return (

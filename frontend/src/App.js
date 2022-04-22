@@ -41,6 +41,8 @@ import Assignsubject from './pages/subject/Assignsubject';
 import Assignsubjectlist from './pages/subject/Assignsubjectlist';
 import Assingdivison from './pages/Student-module/Assingdivison';
 import Studentlistview from './pages/Student-module/Studentlistview';
+import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
+import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
 
 function App() {
   const Dashboard = () => {
@@ -119,6 +121,8 @@ function App() {
               <Route path="/assignsubjectlist" element={<Assignsubjectlist baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/assingdivison" element={<Assingdivison baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

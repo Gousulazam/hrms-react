@@ -5,30 +5,26 @@ import { useLocation } from 'react-router-dom';
 
 export default function FeeDetailsDepartment(props) {
     const { state } = useLocation();
-    const [subjectDetails, setSubjectDetails] = useState([]);
-    const [tbody, setTbody] = useState("");
-    useEffect(() => {
-        axios.post(`${props.baseURL}/getsubjectdetailbyid`, {
-            id: state.subject
-        })
-            .then((response) => {
-                setSubjectDetails(response.data[0]);
-            });
+    const [body, setBody] = useState("");
+    const test = async () =>{
 
-        axios.post(`${props.baseURL}/getiareport`, {
-            id: state.subject
+        axios.post(`${props.baseURL}/getdepartmentfeereport`, {
+            did:state.did,
+            academic_year:state.academicYear,
+            year:state.year,
+            cid:props.userDetails.cid
         })
             .then((response) => {
-                setTbody(response.data);
+                setBody(response.data);
             });
+    }
+    useEffect(() => {
+        test();
     }, [])
 
     return (
         <div class="card text-uppercase">
-            <div class="card-header">
-                <br />
-            </div>
-            <div className="card-body" >
+            <div className="card-body" dangerouslySetInnerHTML={{__html:body}}>
             </div>
         </div>
     )
