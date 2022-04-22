@@ -29,10 +29,6 @@ import MappingCoPo from './pages/attainment/MappingCoPo';
 import CopoMapping from './pages/attainment/CopoMapping';
 import AddPso from './pages/attainment/AddPso';
 import PsoAdd from './pages/attainment/PsoAdd';
-<<<<<<< HEAD
-import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
-import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
-=======
 import Admissionform from './pages/Student-module/Admissionform';
 import Getviewstudent from './pages/Student-module/Getviewstudent';
 import Getstudentlist from './pages/Student-module/Getstudentlist';
@@ -45,7 +41,6 @@ import Assignsubject from './pages/subject/Assignsubject';
 import Assignsubjectlist from './pages/subject/Assignsubjectlist';
 import Assingdivison from './pages/Student-module/Assingdivison';
 import Studentlistview from './pages/Student-module/Studentlistview';
->>>>>>> 455b71ebef2ee6ba2b178382be29112b772571ea
 
 function App() {
   const Dashboard = () => {
