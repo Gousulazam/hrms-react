@@ -19,7 +19,7 @@ const Editstudentdetail = (props) => {
 
     useEffect(() => {
         axios.post(`${props.baseURL}/getdepartmentdetailsbyid`, {
-            cid: state.cid
+            did: state.did
         })
             .then((response) => {
                 setCollegeDetail(response.data[0]);

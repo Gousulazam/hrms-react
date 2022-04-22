@@ -50,7 +50,7 @@ const Getdeletestudent = (props) => {
 
     const getstudent = (e) => {
         e.preventDefault();
-        navigate("/deletestudentlist", { state: { academicYear, department, sem, dv, cid } });
+        navigate("/deletestudentlist", { state: { academicYear, department, sem, dv, cid, did: props.userDetails.did } });
     };
 
 

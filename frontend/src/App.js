@@ -21,14 +21,6 @@ import ViewAttendance from './pages/reports/ViewAttendance';
 import AttendanceView from './pages/reports/AttendanceView';
 import IaReport from './pages/reports/IaReport';
 import ReportIa from './pages/reports/ReportIa';
-import Admissionform from './pages/Student-module/Admissionform';
-import Getviewstudent from './pages/Student-module/Getviewstudent';
-import Getstudentlist from './pages/Student-module/Getstudentlist';
-import Getupdatestudentlist from './pages/Student-module/Getupdatestudentlist';
-import Updatestudentlist from './pages/Student-module/Updatestudentlist';
-import Editstudentdetail from './pages/Student-module/Editstudentdetail';
-import Getdeletestudent from './pages/Student-module/Getdeletestudent';
-import Deletestudentlist from './pages/Student-module/Deletestudentlist';
 import Attendance from './pages/attendance/Attendance';
 import Addattendance from './pages/attendance/Addattendance';
 import LabAttendance from './pages/attendance/LabAttendance';
@@ -37,8 +29,23 @@ import MappingCoPo from './pages/attainment/MappingCoPo';
 import CopoMapping from './pages/attainment/CopoMapping';
 import AddPso from './pages/attainment/AddPso';
 import PsoAdd from './pages/attainment/PsoAdd';
+<<<<<<< HEAD
 import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
 import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
+=======
+import Admissionform from './pages/Student-module/Admissionform';
+import Getviewstudent from './pages/Student-module/Getviewstudent';
+import Getstudentlist from './pages/Student-module/Getstudentlist';
+import Getupdatestudentlist from './pages/Student-module/Getupdatestudentlist';
+import Updatestudentlist from './pages/Student-module/Updatestudentlist';
+import Editstudentdetail from './pages/Student-module/Editstudentdetail';
+import Getdeletestudent from './pages/Student-module/Getdeletestudent';
+import Deletestudentlist from './pages/Student-module/Deletestudentlist';
+import Assignsubject from './pages/subject/Assignsubject';
+import Assignsubjectlist from './pages/subject/Assignsubjectlist';
+import Assingdivison from './pages/Student-module/Assingdivison';
+import Studentlistview from './pages/Student-module/Studentlistview';
+>>>>>>> 455b71ebef2ee6ba2b178382be29112b772571ea
 
 function App() {
   const Dashboard = () => {
@@ -113,8 +120,10 @@ function App() {
               <Route path="/mappingcopo" element={<MappingCoPo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/addpso" element={<AddPso baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/psoadd" element={<PsoAdd baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/departmentfeedetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/feedetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/assignsubject" element={<Assignsubject baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/assignsubjectlist" element={<Assignsubjectlist baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/assingdivison" element={<Assingdivison baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>
