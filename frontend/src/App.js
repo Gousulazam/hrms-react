@@ -37,6 +37,8 @@ import MappingCoPo from './pages/attainment/MappingCoPo';
 import CopoMapping from './pages/attainment/CopoMapping';
 import AddPso from './pages/attainment/AddPso';
 import PsoAdd from './pages/attainment/PsoAdd';
+import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
+import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
 
 function App() {
   const Dashboard = () => {
@@ -111,6 +113,8 @@ function App() {
               <Route path="/mappingcopo" element={<MappingCoPo baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/addpso" element={<AddPso baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/psoadd" element={<PsoAdd baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/departmentfeedetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/feedetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

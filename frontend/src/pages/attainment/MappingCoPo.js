@@ -7,8 +7,9 @@ import swal from 'sweetalert';
 export default function MappingCoPo(props) {
     let navigate = useNavigate();
     const { state } = useLocation();
-    const [subjectDetails, setSubjectDetails] = useState([])
-    const [cosData, setCosData] = useState([])
+    const [subjectDetails, setSubjectDetails] = useState([]);
+    const [cosData, setCosData] = useState([]);
+    const [pso, setpso] = useState([])
     const test = async () => {
 
         await axios.post(`${props.baseURL}/getsubjectdetailbyid`, {
@@ -20,7 +21,18 @@ export default function MappingCoPo(props) {
             id: state.subject
         }).then((response) => {
             setCosData(response.data);
-            // console.log(response.data)
+        });
+
+        await axios.post(`${props.baseURL}/getpso`, {
+            academic_year: state.academicYear,
+            did: props.userDetails.did
+        }).then((response) => {
+            if(response.data.length > 0){
+                setpso(response.data);
+            }else{
+                swal("Please Add PSO", "", "warning");
+                navigate("/copomapping");
+            }
         });
     }
     useEffect(() => {
@@ -61,7 +73,7 @@ export default function MappingCoPo(props) {
     }
 
     const po = ["PO1", "PO2", "PO3", "PO4", "PO5", "PO6", "PO7", "PO8", "PO9", "PO10", "PO11", "PO12"];
-    const pso = ["PSO1", "PSO2", "PSO3"];
+    // const pso = ["PSO1", "PSO2", "PSO3"];
 
     const addPo = async (e,ind,i,type) => {
         e.preventDefault();
@@ -81,7 +93,7 @@ export default function MappingCoPo(props) {
             if(response.data[0] > 0){
                 console.log("added")
             }else{
-                console.log("Not Added")
+                swal("Marks Not Added", "", "error");
             }
         });
     };
@@ -135,7 +147,7 @@ export default function MappingCoPo(props) {
                             }
                             {
                                 pso.map((details, i) => {
-                                    return <th>{details}</th>
+                                    return <th>{details.pso}</th>
                                 })
                             }
                         </tr>
