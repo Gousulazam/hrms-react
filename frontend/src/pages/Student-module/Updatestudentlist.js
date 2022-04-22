@@ -31,7 +31,7 @@ const Updatestudentlist = (props) => {
 
     useEffect(() => {
         axios.post(`${props.baseURL}/getdepartmentdetailsbyid`, {
-            cid: state.cid
+            did: state.did
         })
             .then((response) => {
                 setCollegeDetail(response.data[0]);
@@ -41,7 +41,7 @@ const Updatestudentlist = (props) => {
     const edit = (e) => {
 
         e.preventDefault();
-        navigate("/editstudentdetail", { state: { academicYear, department, cid, dv, sem, studentId: e.target.value } });
+        navigate("/editstudentdetail", { state: { academicYear, department, cid, dv, sem, studentId: e.target.value, did: state.did } });
     };
 
     return (

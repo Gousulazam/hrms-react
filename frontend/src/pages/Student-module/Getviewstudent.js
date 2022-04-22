@@ -9,6 +9,7 @@ const Getviewstudent = (props) => {
     const [departmentOption, setDepartmentOption] = useState(`<option value="">Select Department</option>`);
     const [department, setDepartment] = useState("")
     const [cid, setCid] = useState({ cid: props.userDetails.cid })
+    const [did, setDid] = useState({ did: props.userDetails.did })
     const [dv, setDv] = useState('')
 
     useEffect(() => {
@@ -52,7 +53,7 @@ const Getviewstudent = (props) => {
 
     const getstudent = (e) => {
         e.preventDefault();
-        navigate("/getstudentlist", { state: { academicYear, department, sem, dv, cid } });
+        navigate("/getstudentlist", { state: { academicYear, department, sem, dv, cid, did } });
     };
 
 

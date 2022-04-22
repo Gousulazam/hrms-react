@@ -1173,3 +1173,245 @@ app.delete('/deletepso/:id', async(req, res) => {
     let rows = await promisePool.query(`DELETE FROM nba_pso WHERE id='${data.id}'`);
     res.send([rows[0].affectedRows]);
 });
+
+app.post('/getdepartmentdetailsbyid', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT * FROM `dept` WHERE id=?', [data.did], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getstudentdetail', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT si.*,sa.rno FROM student_info si RIGHT JOIN student_academic sa ON si.student_id=sa.student_id WHERE sa.id=? ', [data.studentId], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/updatestudent', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('UPDATE `student_info` SET usn=?,name=?,user_name=?,did=?,mobile=?,email=?,academic_type=? WHERE student_id in (SELECT student_id FROM `student_academic` WHERE id=?)', [data.usn, data.name, data.usn, data.department, data.mobile, data.email, data.academicType, data.studentId], (err, rows, fields) => {
+        if (!err) {
+            mysqlConnection.query('UPDATE `student_academic` SET rno=?,did=?,sem=?,dv=? WHERE id=?', [data.rno, data.department, data.sem, data.dv, data.studentId], (err, rows, fields) => {
+                if (!err) {
+                    res.send(rows);
+                } else {
+                    console.log(err);
+                }
+            })
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/deleteStudent', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('DELETE FROM `sub_info` WHERE student_id in (SELECT student_id FROM `student_academic` WHERE id=?) AND sem=? AND academic_year=? AND dv=?', [data.studentId, data.sem, data.academicYear, data.dv], (err, rows, fields) => {
+        if (!err) {
+            mysqlConnection.query('DELETE FROM `student_academic` WHERE id=?', [data.studentId], (err, rows, fields) => {
+                if (!err) {
+                    res.send(rows);
+                } else {
+                    console.log(err);
+                }
+            })
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getSubjectList', (req, res) => {
+    let data = req.body;
+    let query = '';
+    if (data.did == 6) {
+        query = `SELECT DISTINCT scode,sname FROM subject WHERE sem='${data.sem}' AND did='${data.did}' AND dv='${data.dv}' AND cid='${data.cid}' AND academic_year='${data.academicYear}' AND stype!='lab' ORDER BY substr(scode,-1) ASC`;
+    } else if (data.did == 7) {
+        query = `SELECT DISTINCT scode,sname FROM subject WHERE sem='${data.sem}' AND did='${data.did}' AND cid='${data.cid}' AND  academic_year='${data.academicYear}' AND stype!='lab' ORDER BY id ASC`;
+    } else {
+        if (data.cid == 8 || data.cid == 9 || data.cid == 34) {
+            let facultyDid = 0;
+            let langId = 0;
+            if (data.cid == 8) {
+                facultyDid = 55;
+                langId = 67;
+            } else {
+                facultyDid = $did;
+                langId = 68;
+            }
+            query = `SELECT DISTINCT scode,sname FROM subject_pre WHERE cid='${data.cid}' AND did IN('${data.did}','${langId}') and sem='${data.sem}' ORDER BY scode ASC`;
+        }
+        else if (data.cid == 4) {
+            query = `SELECT DISTINCT scode,sname FROM subject_pre WHERE cid='${data.cid}' AND did IN('${data.did}') AND sem='${data.sem}' AND academic_year='${data.academicYear}'  ORDER BY scode ASC`;
+        } else {
+            query = `SELECT DISTINCT scode,sname FROM subject WHERE sem='${data.sem}' AND did='${data.did}' AND dv='${data.dv}' AND cid='${data.cid}' AND academic_year='${data.academicYear}' AND stype!='lab' ORDER BY if(substr(scode,5,1)>0,substr(scode,6,1),substr(scode,7,1) ) ASC`;
+        }
+    }
+    mysqlConnection.query(query, (err, rows, fields) => {
+        if (!err) {
+            let option = `<option value="">Select Subject</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].scode}">${rows[index].sname + " (" + rows[index].scode + ")"}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getacademicdepartmentoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name,id FROM `dept` WHERE cid=? AND academic=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Department</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].id}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getquotaoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name,v_name FROM `fee_quota` WHERE cid=? AND status=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Quota</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].v_name}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getcategoriesoption', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT name FROM `fee_categories` WHERE cid=? AND status=? ORDER BY id ASC', [data.cid, '1'], (err, rows, fields) => {
+        if (!err) {
+
+            let option = `<option value="">Select Quota</option>`;
+            for (let index = 0; index < rows.length; index++) {
+                option += `<option value="${rows[index].name}">${rows[index].name}</option>`
+            }
+            res.send(option);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/getsem', (req, res) => {
+    let data = req.body;
+
+    let option = `<option value="">Select Sem</option>`;
+    for (let index = 1; index <= 10; index++) {
+        option += `<option value="${index}">${index}</option>`
+    }
+    res.send(option);
+
+});
+
+app.post('/getstudentlist', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT sa.*,si.usn,sa.id AS sid, si.scheme,si.name as studentname,si.mobile FROM `student_academic` sa INNER JOIN `student_info` si ON sa.student_id = si.student_id WHERE sem=? AND sa.did IN(?) AND dv=? AND sa.cid=? AND sa.academic_year=? ORDER BY rno', [data.sem, data.department, data.dv, data.cid, data.academicYear], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getStudentList2', (req, res) => {
+    let data = req.body;
+    let query = '';
+    if (data.did == 6) {
+        query = `SELECT sa.*,si.usn,si.name,sa.id AS sid FROM student_academic sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${data.sem}' AND sa.did IN('${data.did}') AND dv='${data.dv}' AND sa.cid='${data.cid}' AND sa.academic_year='${data.academicYear}' ORDER BY rno`;
+    } else {
+        query = `SELECT  sa.*,si.usn,si.name,sa.id AS sid FROM student_academic sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${data.sem}' AND sa.did='${data.did}' AND dv='${data.dv}' AND sa.cid='${data.cid}' AND sa.academic_year='${data.academicYear}' ORDER BY si.usn ASC`;
+    }
+    
+    mysqlConnection.query(query, (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+});
+
+app.post('/addSubject', (req, res) => {
+    let addedCount23 = 0;
+    let data = req.body;
+    let studentId = data.studentId;
+
+    for (let index = 0; index < studentId.length; index++) {
+        if (studentId[index] != null) {
+            mysqlConnection.query('SELECT *,(SELECT rno FROM `student_academic` WHERE student_id=si.student_id and academic_year=si.academic_year and promote=0) as rno FROM `student_info` si WHERE student_id=?', [studentId[index]], (err, rows, fields) => {
+                if (!err) {
+                    let studentDetails = rows[0];
+                    mysqlConnection.query('INSERT INTO sub_info(student_id, usn, name, cid, did, sem, dv, scd, academic_year) VALUES (?,?,?,?,?,?,?,?,?)', [studentId[index], studentDetails.usn, studentDetails.name, data.cid, data.did, data.sem, data.dv, data.scd, data.academicYear], (err, rows, fields) => {
+                        if (!err) {
+                            addedCount23++;
+                            console.log(addedCount23);
+                        }
+                    })
+                }
+            })
+        }
+    }
+    console.log(addedCount23);
+});
+
+app.post('/getcollegedetailsbyid', (req, res) => {
+    let data = req.body;
+    mysqlConnection.query('SELECT * FROM `college` WHERE id=?', [data.cid], (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
+
+app.post('/getstudentlis', (req, res) => {
+    let data = req.body;
+    let query = '';
+    // let table = '';
+    if (data.did == 6) {
+        query = `SELECT * FROM student_details WHERE cid='${data.cid}' AND sem='${data.sen}' AND status=1 AND student_id='' AND did < '6' AND academic_year='${data.academicYear}'`;
+    } else {
+        query = `SELECT * FROM student_details WHERE cid='${data.cid}' AND sem='${data.sem}' AND status=1 AND student_id='' AND did='${data.did}' AND academic_year='${data.academicYear}'`;
+    }
+    mysqlConnection.query(query, (err, rows, fields) => {
+        if (!err) {
+            res.send(rows);
+        } else {
+            console.log(err);
+        }
+    })
+
+});
