@@ -43,6 +43,7 @@ import Assingdivison from './pages/Student-module/Assingdivison';
 import Studentlistview from './pages/Student-module/Studentlistview';
 import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
 import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
+import ConsolidateDepartmentFeeDetails from './pages/reports/ConsolidateDepartmentFeeDetails';
 
 function App() {
   const Dashboard = () => {
@@ -123,6 +124,7 @@ function App() {
               <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

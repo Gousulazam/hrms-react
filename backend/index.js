@@ -54,6 +54,66 @@ const formatDate = (type, date22) => {
     }
 }
 
+const wordify = (num) => {
+    const single = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+    const double = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const formatTenth = (digit, prev) => {
+       return 0 == digit ? "" : " " + (1 == digit ? double[prev] : tens[digit])
+    };
+    const formatOther = (digit, next, denom) => {
+       return (0 != digit && 1 != next ? " " + single[digit] : "") + (0 != next || digit > 0 ? " " + denom : "")
+    };
+    let res = "";
+    let index = 0;
+    let digit = 0;
+    let next = 0;
+    let words = [];
+    if (num += "", isNaN(parseInt(num))){
+       res = "";
+    }
+    else if (parseInt(num) > 0 && num.length <= 10) {
+       for (index = num.length - 1; index >= 0; index--) switch (digit = num[index] - 0, next = index > 0 ? num[index - 1] - 0 : 0, num.length - index - 1) {
+          case 0:
+             words.push(formatOther(digit, next, ""));
+          break;
+          case 1:
+             words.push(formatTenth(digit, num[index + 1]));
+             break;
+          case 2:
+             words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] && 0 != num[index + 2] ? " and" : "") : "");
+             break;
+          case 3:
+             words.push(formatOther(digit, next, "Thousand"));
+             break;
+          case 4:
+             words.push(formatTenth(digit, num[index + 1]));
+             break;
+          case 5:
+             words.push(formatOther(digit, next, "Lakh"));
+             break;
+          case 6:
+             words.push(formatTenth(digit, num[index + 1]));
+             break;
+          case 7:
+             words.push(formatOther(digit, next, "Crore"));
+             break;
+          case 8:
+             words.push(formatTenth(digit, num[index + 1]));
+             break;
+          case 9:
+             words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] || 0 != num[index + 2] ? " and" : " Crore") : "")
+       };
+       res = words.reverse().join("")
+       res=res+" rupees"
+    } else res = "";
+    return res
+ };
+
+ const numberWithCommas = (x)=> {
+    return x.toString().split('.')[0].length > 3 ? x.toString().substring(0,x.toString().split('.')[0].length-3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length-3): x.toString();
+}
+
 app.post('/checkuser', (req, res) => {
     let data = req.body;
     mysqlConnection.query('SELECT id,title,name,cid,did,role,photo,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM `admin` a WHERE (email=? OR mobile=?) AND pass=?', [data.email, data.email, data.password], (err, rows, fields) => {
@@ -911,7 +971,7 @@ app.post('/getiareport', (req, res) => {
                 if (marks[0].length != 0) {
                     assignmentsMarks = parseInt(marks[0][0]);
                 }
-                let total = average + assignmentsMarks;
+                let total = parseInt(average) + assignmentsMarks;
                 tbody += `<tr>
                     <td>${index + 1}</td>
                     <td>${element.usn}</td>
@@ -1455,32 +1515,32 @@ app.post('/getfeeyearoption', async (req, res) => {
 app.post('/getdepartmentfeereport', async (req, res) => {
     let data = req.body;
     let usn = '';
-    let query ='';
+    let query = '';
     let body = '';
     let row = '';
-    if(data.did!= 'All'){
+    if (data.did != 'All') {
         row = await promisePool.query(`SELECT name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE id='${data.did}'`);
-    }else{
+    } else {
         row = await promisePool.query(`SELECT iname,("All") AS name FROM college WHERE id='${data.cid}'`);
     }
     let year = "All";
-    if(data.year == 1){
-        year=`1st`
+    if (data.year == 1) {
+        year = `1st`
 
-    }else if(data.year == 2){
-        year=`2nd`
+    } else if (data.year == 2) {
+        year = `2nd`
 
-    }else if(data.year == 3){
-        year=`3rd`
+    } else if (data.year == 3) {
+        year = `3rd`
 
-    }else if(data.year == 4){
-        year=`4th`
+    } else if (data.year == 4) {
+        year = `4th`
 
-    }else if(data.year == 5){
-        year=`5th`
+    } else if (data.year == 5) {
+        year = `5th`
 
     }
-    body+=`<h3 align="center">${row[0][0].iname}</h3>
+    body += `<h3 align="center">${row[0][0].iname}</h3>
            <h4 class="card-title" align="center">Fee Details of ${year} Year ${row[0][0].name} Department For Academic Year ${data.academic_year}</h4>
            <table class="table table-bordered">
            <thead class="thead-dark">
@@ -1529,22 +1589,22 @@ app.post('/getdepartmentfeereport', async (req, res) => {
         }
     }
     let feeHeads = '';
-    if(data.cid == 1){
-        feeHeads='SUM(old_bal+uni_fee+inst_fee+tut_fee)';
-    }else{
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
 
-    if(data.did == "All" && data.year == "All"){
-        query=`SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
-    }else if(data.did == "All" && data.year != ""){
-        query=`SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND year='${data.year}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
-    }else if(data.year == "All" && data.did != ""){
-        query=`SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND did='${data.did}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
-    }else if(data.year != "" && data.did != ""){
-        query=`SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND did='${data.did}' AND year='${data.year}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
+    if (data.did == "All" && data.year == "All") {
+        query = `SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
+    } else if (data.did == "All" && data.year != "") {
+        query = `SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND year='${data.year}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
+    } else if (data.year == "All" && data.did != "") {
+        query = `SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND did='${data.did}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
+    } else if (data.year != "" && data.did != "") {
+        query = `SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND did='${data.did}' AND year='${data.year}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
     }
-    
+
     let feeDetails = await promisePool.query(query);
     let gfee_fixed = 0;
     let gpaid_fee = 0;
@@ -1554,64 +1614,126 @@ app.post('/getdepartmentfeereport', async (req, res) => {
     for (let i = 0; i < feeDetails[0].length; i++) {
         const element = feeDetails[0][i];
         let fee_fixed = element.fee_fixed;
-        if(fee_fixed == null){
-            fee_fixed=0;
+        if (fee_fixed == null) {
+            fee_fixed = 0;
         }
-        gfee_fixed+=fee_fixed;
+        gfee_fixed += fee_fixed;
         let paid_fee = element.paid_fee;
-        if(paid_fee == null){
-            paid_fee=0;
+        if (paid_fee == null) {
+            paid_fee = 0;
         }
-        gpaid_fee+=paid_fee;
+        gpaid_fee += paid_fee;
         let Scholarship = element.Scholarship;
-        if(Scholarship == null){
-            Scholarship=0;
+        if (Scholarship == null) {
+            Scholarship = 0;
         }
-        gScholarship+=Scholarship;
+        gScholarship += Scholarship;
         let Loan = element.Loan;
-        if(Loan == null){
-            Loan=0;
+        if (Loan == null) {
+            Loan = 0;
         }
-        gLoan+=Loan;
+        gLoan += Loan;
         let Other = element.Other;
-        if(Other == null){
-            Other=0;
+        if (Other == null) {
+            Other = 0;
         }
-        gOther+=Other;
-        let balance = fee_fixed-paid_fee;
-        let percentage = (paid_fee / fee_fixed)*100;
+        gOther += Other;
+        let balance = fee_fixed - paid_fee;
+        let percentage = (paid_fee / fee_fixed) * 100;
         percentage = percentage.toString().substring(0, 4);
-        body+=`<tr>
-            <td>${i+1}</td>
+        body += `<tr>
+            <td>${i + 1}</td>
             <td>${element.usn}</td>
             <td>${element.name}</td>
             <td>${element.category}</td>
             <td>${element.quota}</td>
             <td>${element.year}</td>
-            <td>${fee_fixed}</td>
-            <td>${paid_fee}</td>
-            <td>${balance}</td>
-            <td>${Scholarship}</td>
-            <td>${Loan}</td>
-            <td>${Other}</td>
+            <td>${numberWithCommas(fee_fixed)}</td>
+            <td>${numberWithCommas(paid_fee)}</td>
+            <td>${numberWithCommas(balance)}</td>
+            <td>${numberWithCommas(Scholarship)}</td>
+            <td>${numberWithCommas(Loan)}</td>
+            <td>${numberWithCommas(Other)}</td>
             <td>${percentage}%</td>
         </tr>`;
-        
+
     }
-    let gpercentage = (gpaid_fee / gfee_fixed)*100;
-        gpercentage = gpercentage.toString().substring(0, 4);
-    body+=`
+    let gpercentage = (gpaid_fee / gfee_fixed) * 100;
+    gpercentage = gpercentage.toString().substring(0, 4);
+    body += `
     <tr>
         <th colspan="6" class="text-center">Total</th>
-        <th>${gfee_fixed}</th>
-        <th>${gpaid_fee}</th>
-        <th>${gfee_fixed-gpaid_fee}</th>
-        <th>${gScholarship}</th>
-        <th>${gLoan}</th>
-        <th>${gOther}</th>
+        <th>${numberWithCommas(gfee_fixed)} <br> ${wordify(gfee_fixed)}</th>
+        <th>${numberWithCommas(gpaid_fee)} <br> ${wordify(gpaid_fee)}</th>
+        <th>${numberWithCommas(gfee_fixed - gpaid_fee)} <br> ${wordify(gfee_fixed - gpaid_fee)}</th>
+        <th>${numberWithCommas(gScholarship)}</th>
+        <th>${numberWithCommas(gLoan)}</th>
+        <th>${numberWithCommas(gOther)}</th>
         <th>${gpercentage}%</th>
     </tr>
     </tbody>
     </table>`;
     res.send(body)
+});
+
+app.post('/getconsolidatedepartmentdetails', async (req, res) => {
+    let data = req.body;
+    let departments = await promisePool.query(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
+    let feeHeads = '';
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+
+    let body = `<h3 align="center">${departments[0][0].iname}</h3>
+    <h4 align="center">Fees Details For Academic Year ${data.academic_year}</h4>
+    <table class="table table-bordered table-striped" border="1" style="width:100%;border-collapse:collapse;">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Sl No</th>
+                            <th>Department</th>
+                            <th>Fee Fixed</th>
+                            <th>Fee Paid</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+                    let gfee_fixed = 0;
+                    let gpaid_fee =0;
+    for (let i = 0; i < departments[0].length; i++) {
+        const element = departments[0][i];
+        let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
+                        (SELECT SUM(paid_amt) FROM fee_transactions WHERE acd_year=f.acd_year AND did=f.did AND fee_type NOT IN('0','-1')) AS paid_amt
+                        FROM fee_details  f WHERE acd_year='${data.academic_year}' AND did='${element.id}'`)
+        let fee_fixed = departmentFeeDetails[0][0].fee_fixed;
+        if (fee_fixed == null) {
+            fee_fixed = 0;
+        }
+        gfee_fixed+=fee_fixed;
+        let paid_fee = departmentFeeDetails[0][0].paid_amt;
+        if (paid_fee == null) {
+            paid_fee = 0;
+        }
+        gpaid_fee+=paid_fee;
+        let balance = fee_fixed - paid_fee;
+        body += `<tr>
+                            <td>${i + 1}</td>
+                            <td>${element.name}</td>
+                            <td>${numberWithCommas(fee_fixed)}</td>
+                            <td>${numberWithCommas(paid_fee)}</td>
+                            <td>${numberWithCommas(balance)}</td>
+                        </tr>`;
+    }
+    body += `<tr style="font-weight:bold;">
+            <td colspan="2" style="text-align:center;">Total</td>
+            <td>${numberWithCommas(gfee_fixed)} <br> ${wordify(gfee_fixed)}</td>
+            <td>${numberWithCommas(gpaid_fee)} <br> ${wordify(gpaid_fee)}</td>
+            <td>${numberWithCommas(gfee_fixed-gpaid_fee)} <br> ${wordify(gfee_fixed-gpaid_fee)}</td>
+            </tr>
+        </tbody>
+        </table>`;
+
+    res.send(body)
+
 });
