@@ -44,6 +44,10 @@ import Studentlistview from './pages/Student-module/Studentlistview';
 import DepartmentFeeDetails from './pages/reports/DepartmentFeeDetails';
 import FeeDetailsDepartment from './pages/reports/FeeDetailsDepartment';
 import ConsolidateDepartmentFeeDetails from './pages/reports/ConsolidateDepartmentFeeDetails';
+import ConsolidateDepartment from './pages/reports/ConsolidateDepartment';
+import DepartmentConsolidate from './pages/reports/DepartmentConsolidate';
+import FeeCollectionDetails from './pages/reports/FeeCollectionDetails';
+import CollectionFeeDetails from './pages/reports/CollectionFeeDetails';
 
 function App() {
   const Dashboard = () => {
@@ -125,6 +129,10 @@ function App() {
               <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/consolidatedepartment" element={<ConsolidateDepartment baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

@@ -59,59 +59,59 @@ const wordify = (num) => {
     const double = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
     const tens = ["", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
     const formatTenth = (digit, prev) => {
-       return 0 == digit ? "" : " " + (1 == digit ? double[prev] : tens[digit])
+        return 0 == digit ? "" : " " + (1 == digit ? double[prev] : tens[digit])
     };
     const formatOther = (digit, next, denom) => {
-       return (0 != digit && 1 != next ? " " + single[digit] : "") + (0 != next || digit > 0 ? " " + denom : "")
+        return (0 != digit && 1 != next ? " " + single[digit] : "") + (0 != next || digit > 0 ? " " + denom : "")
     };
     let res = "";
     let index = 0;
     let digit = 0;
     let next = 0;
     let words = [];
-    if (num += "", isNaN(parseInt(num))){
-       res = "";
+    if (num += "", isNaN(parseInt(num))) {
+        res = "";
     }
     else if (parseInt(num) > 0 && num.length <= 10) {
-       for (index = num.length - 1; index >= 0; index--) switch (digit = num[index] - 0, next = index > 0 ? num[index - 1] - 0 : 0, num.length - index - 1) {
-          case 0:
-             words.push(formatOther(digit, next, ""));
-          break;
-          case 1:
-             words.push(formatTenth(digit, num[index + 1]));
-             break;
-          case 2:
-             words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] && 0 != num[index + 2] ? " and" : "") : "");
-             break;
-          case 3:
-             words.push(formatOther(digit, next, "Thousand"));
-             break;
-          case 4:
-             words.push(formatTenth(digit, num[index + 1]));
-             break;
-          case 5:
-             words.push(formatOther(digit, next, "Lakh"));
-             break;
-          case 6:
-             words.push(formatTenth(digit, num[index + 1]));
-             break;
-          case 7:
-             words.push(formatOther(digit, next, "Crore"));
-             break;
-          case 8:
-             words.push(formatTenth(digit, num[index + 1]));
-             break;
-          case 9:
-             words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] || 0 != num[index + 2] ? " and" : " Crore") : "")
-       };
-       res = words.reverse().join("")
-       res=res+" rupees"
+        for (index = num.length - 1; index >= 0; index--) switch (digit = num[index] - 0, next = index > 0 ? num[index - 1] - 0 : 0, num.length - index - 1) {
+            case 0:
+                words.push(formatOther(digit, next, ""));
+                break;
+            case 1:
+                words.push(formatTenth(digit, num[index + 1]));
+                break;
+            case 2:
+                words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] && 0 != num[index + 2] ? " and" : "") : "");
+                break;
+            case 3:
+                words.push(formatOther(digit, next, "Thousand"));
+                break;
+            case 4:
+                words.push(formatTenth(digit, num[index + 1]));
+                break;
+            case 5:
+                words.push(formatOther(digit, next, "Lakh"));
+                break;
+            case 6:
+                words.push(formatTenth(digit, num[index + 1]));
+                break;
+            case 7:
+                words.push(formatOther(digit, next, "Crore"));
+                break;
+            case 8:
+                words.push(formatTenth(digit, num[index + 1]));
+                break;
+            case 9:
+                words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] || 0 != num[index + 2] ? " and" : " Crore") : "")
+        };
+        res = words.reverse().join("")
+        res = res + " rupees"
     } else res = "";
     return res
- };
+};
 
- const numberWithCommas = (x)=> {
-    return x.toString().split('.')[0].length > 3 ? x.toString().substring(0,x.toString().split('.')[0].length-3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length-3): x.toString();
+const numberWithCommas = (x) => {
+    return x.toString().split('.')[0].length > 3 ? x.toString().substring(0, x.toString().split('.')[0].length - 3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length - 3) : x.toString();
 }
 
 app.post('/checkuser', (req, res) => {
@@ -1699,8 +1699,8 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
                         </tr>
                     </thead>
                     <tbody>`;
-                    let gfee_fixed = 0;
-                    let gpaid_fee =0;
+    let gfee_fixed = 0;
+    let gpaid_fee = 0;
     for (let i = 0; i < departments[0].length; i++) {
         const element = departments[0][i];
         let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
@@ -1710,12 +1710,12 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
         if (fee_fixed == null) {
             fee_fixed = 0;
         }
-        gfee_fixed+=fee_fixed;
+        gfee_fixed += fee_fixed;
         let paid_fee = departmentFeeDetails[0][0].paid_amt;
         if (paid_fee == null) {
             paid_fee = 0;
         }
-        gpaid_fee+=paid_fee;
+        gpaid_fee += paid_fee;
         let balance = fee_fixed - paid_fee;
         body += `<tr>
                             <td>${i + 1}</td>
@@ -1729,11 +1729,195 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
             <td colspan="2" style="text-align:center;">Total</td>
             <td>${numberWithCommas(gfee_fixed)} <br> ${wordify(gfee_fixed)}</td>
             <td>${numberWithCommas(gpaid_fee)} <br> ${wordify(gpaid_fee)}</td>
-            <td>${numberWithCommas(gfee_fixed-gpaid_fee)} <br> ${wordify(gfee_fixed-gpaid_fee)}</td>
+            <td>${numberWithCommas(gfee_fixed - gpaid_fee)} <br> ${wordify(gfee_fixed - gpaid_fee)}</td>
             </tr>
         </tbody>
         </table>`;
 
     res.send(body)
 
+});
+
+app.post('/departmentconsolidate', async (req, res) => {
+    let data = req.body;
+    let departments = await promisePool.query(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
+    let feeHeads = '';
+    let title = '';
+    let fdate = formatDate('', data.fromDate);
+    let tdate = formatDate('', data.toDate);
+    let currentPaid = '';
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+
+    if (data.type == 'daily') {
+        title = `Fee Collection on ${fdate}`;
+    } else if (data.type == 'monthly') {
+        let split = fdate.split('-');
+        let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        let i = parseInt(split[1].replace(/^0+/, '')) - 1;
+        title = `Fee Collection of ${month[i]}-${split[2]}`;
+    } else if (data.type == 'custom') {
+        title = `Fee Collection From ${fdate} To ${tdate}`;
+    }
+
+    let body = `<h3 align="center">${departments[0][0].iname}</h3>
+    <h4 align="center">${title}</h4>
+    <table class="table table-bordered table-striped" border="1" style="width:100%;border-collapse:collapse;">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>Sl No</th>
+                            <th>Department</th>
+                            <th>Fee Fixed</th>
+                            <th>Current Fee Paid</th>
+                            <th>Previous Fee Paid</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+    let gfee_fixed = 0;
+    let gpaid_fee = 0;
+    let gcurrent_fee=0;
+    for (let i = 0; i < departments[0].length; i++) {
+        const element = departments[0][i];
+        let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
+                        (SELECT SUM(paid_amt) FROM fee_transactions WHERE acd_year=f.acd_year AND did=f.did AND fee_type NOT IN('0','-1')) AS paid_amt
+                        FROM fee_details  f WHERE acd_year='${data.academic_year}' AND did='${element.id}'`);
+
+        if (data.type == 'daily') {
+            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date='${data.fromDate}'`);
+        } else if (data.type == 'monthly') {
+            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}')`);
+        } else if (data.type == 'custom') {
+            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}'`);
+        }
+        
+        let fee_fixed = departmentFeeDetails[0][0].fee_fixed;
+        if (fee_fixed == null) {
+            fee_fixed = 0;
+        }
+        gfee_fixed += fee_fixed;
+        let paid_fee = departmentFeeDetails[0][0].paid_amt;
+        if (paid_fee == null) {
+            paid_fee = 0;
+        }
+        gpaid_fee += paid_fee;
+        let currentPaid1=currentPaid[0][0].feePaid;
+        if(currentPaid1 == null){
+            currentPaid1=0;
+        }
+        gcurrent_fee+=currentPaid1;
+        let balance = fee_fixed - currentPaid1 - paid_fee;
+        body += `<tr>
+                            <td>${i + 1}</td>
+                            <td>${element.name}</td>
+                            <td>${numberWithCommas(fee_fixed)}</td>
+                            <td>${numberWithCommas(currentPaid1)}</td>
+                            <td>${numberWithCommas(paid_fee)}</td>
+                            <td>${numberWithCommas(balance)}</td>
+                        </tr>`;
+    }
+    let gbalanace = gfee_fixed - gcurrent_fee - gpaid_fee;
+    body += `<tr style="font-weight:bold;">
+            <td colspan="2" style="text-align:center;">Total</td>
+            <td>${numberWithCommas(gfee_fixed)} <br> ${wordify(gfee_fixed)}</td>
+            <td>${numberWithCommas(gcurrent_fee)} <br> ${wordify(gcurrent_fee)}</td>
+            <td>${numberWithCommas(gpaid_fee)} <br> ${wordify(gpaid_fee)}</td>
+            <td>${numberWithCommas(gbalanace)} <br> ${wordify(gbalanace)}</td>
+            </tr>
+        </tbody>
+        </table>`;
+
+    res.send(body)
+
+});
+
+app.post('/feecollectiondetails', async (req, res) => {
+    let data = req.body;
+    let body =``;
+    let title=``;
+    let query =``;
+    let colspan =``;
+    let fdate = formatDate('', data.fromDate);
+    let tdate = formatDate('', data.toDate);
+    if(data.did == "All"){
+        if (data.type == 'daily') {
+            title = `Fee Collection on ${fdate} of academic year ${data.academic_year}`;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
+            colspan=5;
+        } else if (data.type == 'monthly') {
+            let split = fdate.split('-');
+            let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            let i = parseInt(split[1].replace(/^0+/, '')) - 1;
+            title = `Fee Collection of ${month[i]}-${split[2]} of academic year ${data.academic_year}`;
+            colspan=5;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
+        } else if (data.type == 'custom') {
+            title = `Fee Collection From ${fdate} To ${tdate} of academic year ${data.academic_year}`;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
+            colspan=6;
+        }
+    }else{
+        if (data.type == 'daily') {
+            title = `Fee Collection on ${fdate} of academic year ${data.academic_year}`;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
+            colspan=5;
+        } else if (data.type == 'monthly') {
+            let split = fdate.split('-');
+            let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            let i = parseInt(split[1].replace(/^0+/, '')) - 1;
+            title = `Fee Collection of ${month[i]}-${split[2]} of academic year ${data.academic_year}`;
+            colspan=5;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
+        } else if (data.type == 'custom') {
+            title = `Fee Collection From ${fdate} To ${tdate} of academic year ${data.academic_year}`;
+            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
+            colspan=6;
+        }
+    }
+    let collegeDetails = await promisePool.query(`SELECT iname FROM college WHERE id='${data.cid}'`);
+    let transactionList = await promisePool.query(query);
+    body+=`<h1 align="center" class="text-uppercase">${collegeDetails[0][0].iname}</h1>
+    <h2 align="center" class="text-uppercase">${title}</h2>
+    <table class="table table-bordered">
+    <thead class="thead-dark">
+    <tr>
+        <th>sl no</th>
+        <th>usn</th>
+        <th>name</th>
+        <th>department</th>`;
+    if (data.type == 'custom') {
+        body+=`<th>date</th>`;
+     }   
+    body+=`<th>scroll</th>
+        <th>paid amount</th>
+    </tr>
+    </thead>
+    <tbody>`;
+    let gtotal=0;
+    for (let i = 0; i < transactionList[0].length; i++) {
+        const element = transactionList[0][i];
+        let transctionDetails = await promisePool.query(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,(SELECT name FROM dept WHERE id=f.did) as dept,SUM(paid_amt) AS paid_amt,usn,scr_no,did,paid_date FROM fee_transactions f WHERE trans_id='${element.trans_id}'`);
+        body+=`<tr>
+            <td>${i+1}</td>
+            <td>${transctionDetails[0][0].usn}</td>
+            <td>${transctionDetails[0][0].name}</td>
+            <td>${transctionDetails[0][0].dept}</td>`;
+            if (data.type == 'custom') {
+        body+=`<td>${formatDate("",transctionDetails[0][0].paid_date)}</td>`;
+            }
+        body+=`<td>${transctionDetails[0][0].scr_no}</td>
+            <td>${numberWithCommas(transctionDetails[0][0].paid_amt)}</td>
+        </tr>`;
+        gtotal+=transctionDetails[0][0].paid_amt;
+    }
+    body+=`<tr class="font-weight-bold">
+    <td class="text-center" colspan="${colspan}" >Total</td>
+    <td class="text-center" >${numberWithCommas(gtotal)}</td>
+    </tr> 
+    </tbody>
+    </table>`;
+    res.send(body);
 });

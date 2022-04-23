@@ -8,11 +8,13 @@ export default function FeeDetailsDepartment(props) {
     const [body, setBody] = useState("");
     const test = async () =>{
 
-        axios.post(`${props.baseURL}/departmentconsolidate`, {
+        axios.post(`${props.baseURL}/feecollectiondetails`, {
+            cid:props.userDetails.cid,
             did:state.did,
             academic_year:state.academicYear,
-            year:state.year,
-            cid:props.userDetails.cid
+            type:state.type,
+            fromDate: state.fromDate,
+            toDate: state.toDate,
         })
             .then((response) => {
                 setBody(response.data);
