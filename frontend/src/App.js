@@ -48,6 +48,7 @@ import ConsolidateDepartment from './pages/reports/ConsolidateDepartment';
 import DepartmentConsolidate from './pages/reports/DepartmentConsolidate';
 import FeeCollectionDetails from './pages/reports/FeeCollectionDetails';
 import CollectionFeeDetails from './pages/reports/CollectionFeeDetails';
+import PayUsnWise from './pages/fees/PayUsnWise';
 
 function App() {
   const Dashboard = () => {
@@ -133,6 +134,7 @@ function App() {
               <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails}/>} />
               <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/payusnwise" element={<PayUsnWise baseURL={baseURL} userDetails={userDetails}/>} />
             </Routes>
           </BrowserRouter>
         </div>

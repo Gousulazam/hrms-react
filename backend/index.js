@@ -1921,3 +1921,16 @@ app.post('/feecollectiondetails', async (req, res) => {
     </table>`;
     res.send(body);
 });
+
+app.post('/getpayfeedetails', async (req, res) => {
+    let data = req.body;
+    let feeHeads='';
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+    
+    let feeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,paid_fee,year,usn,student_id,id,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE cid='${data.cid}' AND usn='${data.usn}' LIMIT 1) AND verify='1' AND fee_drpot='0' GROUP BY year`);
+    res.send(feeDetails[0]);
+});
