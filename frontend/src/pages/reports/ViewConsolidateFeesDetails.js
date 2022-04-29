@@ -1,21 +1,21 @@
-import React,{ useState } from "react";
+import React, { useState } from "react";
 import axios from "axios";
-import PayFeeDetails from "./PayFeeDetails";
+// import PayFeeDetails from "./PayFeeDetails";
 
-export default function PayUsnWise(props) {
+export default function ViewConsolidateFeesDetails(props) {
     const [result, setResult] = useState();
     const [usn, setUsn] = useState("");
 
     const fetchDetails = async (e) => {
         e.preventDefault();
-        await axios.post(`${props.baseURL}/getpayfeedetails`, {
+        await axios.post(`${props.baseURL}/getconsolidatefeesdetails`, {
             usn: usn,
             cid: props.userDetails.cid
         }).then((response) => {
             if (response.data.length > 0) {
-                setResult(<PayFeeDetails data={response.data} baseURL={props.baseURL} userDetails={props.userDetails} />);
+                setResult(response.data);
             } else {
-                setResult(<h6 className="text-danger font-weight-bold">No Data Found</h6>);
+                setResult(`<h6 class="text-danger font-weight-bold">No Data Found</h6>`);
             }
         });
     };
@@ -23,7 +23,7 @@ export default function PayUsnWise(props) {
     return (
         <>
             <div className="card">
-                <div className="card-header text-center font-weight-bold">PAY USN WISE FEES</div>
+                <div className="card-header text-center font-weight-bold">VIEW FEES DETAILS</div>
                 <form onSubmit={fetchDetails}>
                     <div className="card-body">
                         <div className="form-group">
@@ -42,7 +42,9 @@ export default function PayUsnWise(props) {
                     </div>
                 </form>
             </div>
-            {result}
+            <div dangerouslySetInnerHTML={{__html:result}}>
+
+            </div>
         </>
     )
 }

@@ -49,6 +49,13 @@ import DepartmentConsolidate from './pages/reports/DepartmentConsolidate';
 import FeeCollectionDetails from './pages/reports/FeeCollectionDetails';
 import CollectionFeeDetails from './pages/reports/CollectionFeeDetails';
 import PayUsnWise from './pages/fees/PayUsnWise';
+import AfterPayTransaction from './pages/fees/AfterPayTransaction';
+import ViewConsolidateFeesDetails from './pages/reports/ViewConsolidateFeesDetails';
+import DeleteTransaction from './pages/fees/DeleteTransaction';
+import ViewDeleteTranscationStatus from './pages/fees/ViewDeleteTranscationStatus';
+import ApproveDeleteTranscations from './pages/fees/ApproveDeleteTranscations';
+import DeleteTransactionsDetails from './pages/fees/DeleteTransactionsDetails';
+import DeleteStudentFeeDetails from './pages/fees/DeleteStudentFeeDetails';
 
 function App() {
   const Dashboard = () => {
@@ -69,15 +76,89 @@ function App() {
       </header>
     </div>
   }
+
+  const formatDate = (type, date22) => {
+    var today = new Date(date22);
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+
+    if (type == 'db') {
+      return `${yyyy}-${mm}-${dd}`;
+    } else {
+      return `${dd}-${mm}-${yyyy}`;
+    }
+  }
+
+  const wordify = (num) => {
+    const single = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+    const double = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tens = ["", "Ten", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const formatTenth = (digit, prev) => {
+      return 0 == digit ? "" : " " + (1 == digit ? double[prev] : tens[digit])
+    };
+    const formatOther = (digit, next, denom) => {
+      return (0 != digit && 1 != next ? " " + single[digit] : "") + (0 != next || digit > 0 ? " " + denom : "")
+    };
+    let res = "";
+    let index = 0;
+    let digit = 0;
+    let next = 0;
+    let words = [];
+    if (num += "", isNaN(parseInt(num))) {
+      res = "";
+    }
+    else if (parseInt(num) > 0 && num.length <= 10) {
+      for (index = num.length - 1; index >= 0; index--) switch (digit = num[index] - 0, next = index > 0 ? num[index - 1] - 0 : 0, num.length - index - 1) {
+        case 0:
+          words.push(formatOther(digit, next, ""));
+          break;
+        case 1:
+          words.push(formatTenth(digit, num[index + 1]));
+          break;
+        case 2:
+          words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] && 0 != num[index + 2] ? " and" : "") : "");
+          break;
+        case 3:
+          words.push(formatOther(digit, next, "Thousand"));
+          break;
+        case 4:
+          words.push(formatTenth(digit, num[index + 1]));
+          break;
+        case 5:
+          words.push(formatOther(digit, next, "Lakh"));
+          break;
+        case 6:
+          words.push(formatTenth(digit, num[index + 1]));
+          break;
+        case 7:
+          words.push(formatOther(digit, next, "Crore"));
+          break;
+        case 8:
+          words.push(formatTenth(digit, num[index + 1]));
+          break;
+        case 9:
+          words.push(0 != digit ? " " + single[digit] + " Hundred" + (0 != num[index + 1] || 0 != num[index + 2] ? " and" : " Crore") : "")
+      };
+      res = words.reverse().join("")
+      res = res + " rupees"
+    } else res = "";
+    return res
+  };
+
+  const numberWithCommas = (x) => {
+    return x.toString().split('.')[0].length > 3 ? x.toString().substring(0, x.toString().split('.')[0].length - 3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length - 3) : x.toString();
+  }
+
   const [login, setLogin] = useState(sessionStorage.getItem('login'))
   const [userDetails, setUserDetails] = useState(JSON.parse(sessionStorage.getItem('userDetails')));
   const [role, setRole] = useState(sessionStorage.getItem('role'))
 
-  if(userDetails == null){
+  if (userDetails == null) {
     setUserDetails({
-      name:"",
-      id:"",
-      roles:"",
+      name: "",
+      id: "",
+      roles: "",
     })
   }
   const baseURL = `http://localhost:5000`;
@@ -91,50 +172,56 @@ function App() {
             <Routes>
               <Route path="/" element={<Login setLogin={setLogin} baseURL={baseURL} setUserDetails={setUserDetails} setRole={setRole} />} />
               <Route path="/dashboard" element={<Dashboard />} force='refresh' />
-              <Route path="/addco" element={<AddCo baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/mappingco" element={<MappingCo baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/subjectreportdetails" element={<SubjectReportDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/viewattendance" element={<ViewAttendance baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/attendanceview" element={<AttendanceView baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/iareport" element={<IaReport baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/reportia" element={<ReportIa baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/admissionform" element={<Admissionform baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/getviewstudent" element={<Getviewstudent baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/getstudentlist" element={<Getstudentlist baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/getupdatestudentlist" element={<Getupdatestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/Updatestudentlist" element={<Updatestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/editstudentdetail" element={<Editstudentdetail baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/getdeletestudent" element={<Getdeletestudent baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/deletestudentlist" element={<Deletestudentlist baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/attendance" element={<Attendance baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/addattendance" element={<Addattendance baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/labattendance" element={<LabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/addlabattendance" element={<AddLabAttendance baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/copomapping" element={<CopoMapping baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/mappingcopo" element={<MappingCoPo baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/addpso" element={<AddPso baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/psoadd" element={<PsoAdd baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/assignsubject" element={<Assignsubject baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/assignsubjectlist" element={<Assignsubjectlist baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/assingdivison" element={<Assingdivison baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/consolidatedepartment" element={<ConsolidateDepartment baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails}/>} />
-              <Route path="/payusnwise" element={<PayUsnWise baseURL={baseURL} userDetails={userDetails}/>} />
+              <Route path="/addco" element={<AddCo baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/mappingco" element={<MappingCo baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/subjectreportdetails" element={<SubjectReportDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/viewattendance" element={<ViewAttendance baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/attendanceview" element={<AttendanceView baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/iareport" element={<IaReport baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/reportia" element={<ReportIa baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/admissionform" element={<Admissionform baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/getviewstudent" element={<Getviewstudent baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/getstudentlist" element={<Getstudentlist baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/getupdatestudentlist" element={<Getupdatestudentlist baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/Updatestudentlist" element={<Updatestudentlist baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/editstudentdetail" element={<Editstudentdetail baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/getdeletestudent" element={<Getdeletestudent baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/deletestudentlist" element={<Deletestudentlist baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/attendance" element={<Attendance baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/addattendance" element={<Addattendance baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/labattendance" element={<LabAttendance baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/addlabattendance" element={<AddLabAttendance baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/copomapping" element={<CopoMapping baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/mappingcopo" element={<MappingCoPo baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/addpso" element={<AddPso baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/psoadd" element={<PsoAdd baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/assignsubject" element={<Assignsubject baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/assignsubjectlist" element={<Assignsubjectlist baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/assingdivison" element={<Assingdivison baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/consolidatedepartment" element={<ConsolidateDepartment baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/payusnwise" element={<PayUsnWise baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/afterpaytransaction" element={<AfterPayTransaction baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/viewconsolidatefeesdetails" element={<ViewConsolidateFeesDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/deletetransaction" element={<DeleteTransaction baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/viewdeletetranscationstatus" element={<ViewDeleteTranscationStatus baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/approvedeletetranscations" element={<ApproveDeleteTranscations baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/deletestudentfeedetails" element={<DeleteStudentFeeDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
             </Routes>
           </BrowserRouter>
         </div>

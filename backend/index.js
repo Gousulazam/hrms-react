@@ -114,6 +114,14 @@ const numberWithCommas = (x) => {
     return x.toString().split('.')[0].length > 3 ? x.toString().substring(0, x.toString().split('.')[0].length - 3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length - 3) : x.toString();
 }
 
+const getHeadWisePaidAmount = async (cid, feesId, feeType) => {
+    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount FROM fee_transactions WHERE cid='${cid}' AND fee_id='${feesId}' AND fee_type='${feeType}'`);
+    if (feeDetails[0][0]['paidAmount'] == null) {
+        return 0;
+    }
+    return feeDetails[0][0]['paidAmount'];
+}
+
 app.post('/checkuser', (req, res) => {
     let data = req.body;
     mysqlConnection.query('SELECT id,title,name,cid,did,role,photo,(SELECT GROUP_CONCAT(role_name) FROM user_role WHERE fid=a.id ORDER BY prt ASC limit 1) roles FROM `admin` a WHERE (email=? OR mobile=?) AND pass=?', [data.email, data.email, data.password], (err, rows, fields) => {
@@ -752,9 +760,10 @@ app.post('/getpreviousyearscheme', (req, res) => {
 });
 
 app.post('/test', async (req, res) => {
-    let classTaken = await promisePool.query(`SELECT academic_year FROM academic_year`)
-    res.send(classTaken[0]);
+    // let classTaken = await promisePool.query(`SELECT academic_year FROM academic_year`)
+    // res.send(classTaken[0]);
     // formatDate('db',"2022-04-19");
+    console.log(req.body);
 });
 
 app.post('/getsubjectreportdetails', (req, res) => {
@@ -1779,7 +1788,7 @@ app.post('/departmentconsolidate', async (req, res) => {
                     <tbody>`;
     let gfee_fixed = 0;
     let gpaid_fee = 0;
-    let gcurrent_fee=0;
+    let gcurrent_fee = 0;
     for (let i = 0; i < departments[0].length; i++) {
         const element = departments[0][i];
         let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
@@ -1793,7 +1802,7 @@ app.post('/departmentconsolidate', async (req, res) => {
         } else if (data.type == 'custom') {
             currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}'`);
         }
-        
+
         let fee_fixed = departmentFeeDetails[0][0].fee_fixed;
         if (fee_fixed == null) {
             fee_fixed = 0;
@@ -1804,11 +1813,11 @@ app.post('/departmentconsolidate', async (req, res) => {
             paid_fee = 0;
         }
         gpaid_fee += paid_fee;
-        let currentPaid1=currentPaid[0][0].feePaid;
-        if(currentPaid1 == null){
-            currentPaid1=0;
+        let currentPaid1 = currentPaid[0][0].feePaid;
+        if (currentPaid1 == null) {
+            currentPaid1 = 0;
         }
-        gcurrent_fee+=currentPaid1;
+        gcurrent_fee += currentPaid1;
         let balance = fee_fixed - currentPaid1 - paid_fee;
         body += `<tr>
                             <td>${i + 1}</td>
@@ -1836,50 +1845,50 @@ app.post('/departmentconsolidate', async (req, res) => {
 
 app.post('/feecollectiondetails', async (req, res) => {
     let data = req.body;
-    let body =``;
-    let title=``;
-    let query =``;
-    let colspan =``;
+    let body = ``;
+    let title = ``;
+    let query = ``;
+    let colspan = ``;
     let fdate = formatDate('', data.fromDate);
     let tdate = formatDate('', data.toDate);
-    if(data.did == "All"){
+    if (data.did == "All") {
         if (data.type == 'daily') {
             title = `Fee Collection on ${fdate} of academic year ${data.academic_year}`;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
-            colspan=5;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
+            colspan = 5;
         } else if (data.type == 'monthly') {
             let split = fdate.split('-');
             let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             let i = parseInt(split[1].replace(/^0+/, '')) - 1;
             title = `Fee Collection of ${month[i]}-${split[2]} of academic year ${data.academic_year}`;
-            colspan=5;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
+            colspan = 5;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
         } else if (data.type == 'custom') {
             title = `Fee Collection From ${fdate} To ${tdate} of academic year ${data.academic_year}`;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
-            colspan=6;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
+            colspan = 6;
         }
-    }else{
+    } else {
         if (data.type == 'daily') {
             title = `Fee Collection on ${fdate} of academic year ${data.academic_year}`;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
-            colspan=5;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date='${data.fromDate}' AND acd_year='${data.academic_year}'`;
+            colspan = 5;
         } else if (data.type == 'monthly') {
             let split = fdate.split('-');
             let month = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
             let i = parseInt(split[1].replace(/^0+/, '')) - 1;
             title = `Fee Collection of ${month[i]}-${split[2]} of academic year ${data.academic_year}`;
-            colspan=5;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
+            colspan = 5;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}') AND acd_year='${data.academic_year}'`;
         } else if (data.type == 'custom') {
             title = `Fee Collection From ${fdate} To ${tdate} of academic year ${data.academic_year}`;
-            query=`SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
-            colspan=6;
+            query = `SELECT DISTINCT trans_id FROM fee_transactions WHERE cid='${data.cid}' AND  did='${data.did}' AND fee_type NOT IN('0','-1')  AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}' AND acd_year='${data.academic_year}'`;
+            colspan = 6;
         }
     }
     let collegeDetails = await promisePool.query(`SELECT iname FROM college WHERE id='${data.cid}'`);
     let transactionList = await promisePool.query(query);
-    body+=`<h1 align="center" class="text-uppercase">${collegeDetails[0][0].iname}</h1>
+    body += `<h1 align="center" class="text-uppercase">${collegeDetails[0][0].iname}</h1>
     <h2 align="center" class="text-uppercase">${title}</h2>
     <table class="table table-bordered">
     <thead class="thead-dark">
@@ -1889,31 +1898,31 @@ app.post('/feecollectiondetails', async (req, res) => {
         <th>name</th>
         <th>department</th>`;
     if (data.type == 'custom') {
-        body+=`<th>date</th>`;
-     }   
-    body+=`<th>scroll</th>
+        body += `<th>date</th>`;
+    }
+    body += `<th>scroll</th>
         <th>paid amount</th>
     </tr>
     </thead>
     <tbody>`;
-    let gtotal=0;
+    let gtotal = 0;
     for (let i = 0; i < transactionList[0].length; i++) {
         const element = transactionList[0][i];
         let transctionDetails = await promisePool.query(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,(SELECT name FROM dept WHERE id=f.did) as dept,SUM(paid_amt) AS paid_amt,usn,scr_no,did,paid_date FROM fee_transactions f WHERE trans_id='${element.trans_id}'`);
-        body+=`<tr>
-            <td>${i+1}</td>
+        body += `<tr>
+            <td>${i + 1}</td>
             <td>${transctionDetails[0][0].usn}</td>
             <td>${transctionDetails[0][0].name}</td>
             <td>${transctionDetails[0][0].dept}</td>`;
-            if (data.type == 'custom') {
-        body+=`<td>${formatDate("",transctionDetails[0][0].paid_date)}</td>`;
-            }
-        body+=`<td>${transctionDetails[0][0].scr_no}</td>
+        if (data.type == 'custom') {
+            body += `<td>${formatDate("", transctionDetails[0][0].paid_date)}</td>`;
+        }
+        body += `<td>${transctionDetails[0][0].scr_no}</td>
             <td>${numberWithCommas(transctionDetails[0][0].paid_amt)}</td>
         </tr>`;
-        gtotal+=transctionDetails[0][0].paid_amt;
+        gtotal += transctionDetails[0][0].paid_amt;
     }
-    body+=`<tr class="font-weight-bold">
+    body += `<tr class="font-weight-bold">
     <td class="text-center" colspan="${colspan}" >Total</td>
     <td class="text-center" >${numberWithCommas(gtotal)}</td>
     </tr> 
@@ -1924,13 +1933,686 @@ app.post('/feecollectiondetails', async (req, res) => {
 
 app.post('/getpayfeedetails', async (req, res) => {
     let data = req.body;
-    let feeHeads='';
+    let feeHeads = '';
     if (data.cid == 1) {
         feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
     } else {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
-    
+
     let feeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,paid_fee,year,usn,student_id,id,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE cid='${data.cid}' AND usn='${data.usn}' LIMIT 1) AND verify='1' AND fee_drpot='0' GROUP BY year`);
     res.send(feeDetails[0]);
+});
+
+app.post('/payfees', async (req, res) => {
+    let data = req.body;
+    let feeHeads = ``;
+
+    let getTransactionId = async (cid, did) => {
+        let transcationTableId = await promisePool.query("SELECT MAX(id)+1 AS maxId FROM `fee_transactions` ORDER BY id DESC");
+        return `${cid + did + "T" + transcationTableId[0][0]['maxId']}`;
+    };
+
+    let getStudentFeeDetails = async (id) => {
+        let feeDetails = await promisePool.query(`SELECT id,student_id,usn,cid,did,year,acd_year,uni_fee,tut_fee,bal FROM fee_details WHERE id='${id}' ORDER BY id DESC`);
+        return feeDetails[0][0];
+    };
+
+    let student_feeDetails = await getStudentFeeDetails(data.feeId);
+    let universityFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, 1);
+    let universityFeeBalance = parseFloat(student_feeDetails['uni_fee'] - universityFeePaid);
+    let tuitionFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, 3);
+    let tuitionFeeBalance = parseFloat(student_feeDetails['tut_fee'] - tuitionFeePaid);
+    let remainingPaidAmount = 0;
+    let paidAmount = parseFloat(data.paidAmt);
+
+
+    if (student_feeDetails.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+    
+    // let check = await promisePool.query(`SELECT id FROM fee_transactions WHERE fee_id='${student_feeDetails['id']}' AND acd_year='${student_feeDetails['acd_year']}' AND delete_sts=1`);
+    
+    // if (check[0].length > 0) {
+        let query = `INSERT INTO fee_transactions(trans_id, fee_id, student_id, usn, cid, did, year,acd_year,scr_no, paid_date,uid,fee_type,paid_amt,bal)VALUES ('${await getTransactionId(student_feeDetails.cid, student_feeDetails.did)}','${student_feeDetails.id}','${student_feeDetails.student_id}','${student_feeDetails.usn}','${student_feeDetails.cid}','${student_feeDetails.did}','${student_feeDetails.year}','${student_feeDetails.acd_year}','${data.scrollNo}','${formatDate('db', data.pdate)}','${data.id}'`;
+        let query2 = ``;
+
+        if (universityFeeBalance > 0) {
+            query2 += `,'1'`;
+            if (paidAmount > universityFeeBalance) {
+                let details = await getStudentFeeDetails(data.feeId);
+                let bal = details.bal - universityFeeBalance;
+                query2 += `,'${universityFeeBalance}',${bal})`;
+                remainingPaidAmount = paidAmount - universityFeeBalance;
+                let isInsert = await promisePool.query(`${query + query2}`);
+                if (isInsert[0].insertId > 0) {
+                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                    if (feeDetails[0][0].paidAmount == null) {
+                        feeDetails[0][0].paidAmount = 0;
+                    }
+                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                    let uquery = ``;
+
+                    if (balance == 0) {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    } else {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    }
+
+                    let update = await promisePool.query(uquery);
+                    if (update[0].affectedRows) {
+                        // res.send(["Record Added","success"]);
+                        if (remainingPaidAmount > 0) {
+                            if (tuitionFeeBalance > 0) {
+                                query2 = ``;
+                                query2 += `,'3'`;
+                                if (remainingPaidAmount > tuitionFeeBalance) {
+                                    let details = await getStudentFeeDetails(data.feeId);
+                                    let bal = details.bal - tuitionFeeBalance;
+                                    query2 += `,'${tuitionFeeBalance}',${bal})`;
+                                    let isInsert = await promisePool.query(`${query + query2}`);
+                                    if (isInsert[0].insertId > 0) {
+                                        let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                                        if (feeDetails[0][0].paidAmount == null) {
+                                            feeDetails[0][0].paidAmount = 0;
+                                        }
+                                        let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                                        let uquery = ``;
+
+                                        if (balance == 0) {
+                                            uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                                        } else {
+                                            uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                                        }
+
+                                        let update = await promisePool.query(uquery);
+                                        if (update[0].affectedRows) {
+                                            res.send(["Record Added", "success"]);
+                                        } else {
+                                            res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                                        }
+                                    } else {
+                                        res.send("Record Not Added", "", "error");
+                                    }
+                                } else {
+                                    let details = await getStudentFeeDetails(data.feeId);
+                                    let bal = details.bal - remainingPaidAmount;
+                                    query2 += `,'${remainingPaidAmount}',${bal})`;
+
+                                    let isInsert = await promisePool.query(`${query + query2}`);
+                                    if (isInsert[0].insertId > 0) {
+                                        let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                                        if (feeDetails[0][0].paidAmount == null) {
+                                            feeDetails[0][0].paidAmount = 0;
+                                        }
+                                        let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                                        let uquery = ``;
+
+                                        if (balance == 0) {
+                                            uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                                        } else {
+                                            uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                                        }
+
+                                        let update = await promisePool.query(uquery);
+                                        if (update[0].affectedRows) {
+                                            res.send(["Record Added", "success"]);
+                                        } else {
+                                            res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                                        }
+                                    } else {
+                                        res.send("Record Not Added", "", "error");
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                    }
+                } else {
+                    res.send("Record Not Added", "", "error");
+                }
+
+            } else {
+                let details = await getStudentFeeDetails(data.feeId);
+                let bal = details.bal - paidAmount;
+                query2 += `,'${paidAmount}',${bal})`;
+
+                let isInsert = await promisePool.query(`${query + query2}`);
+                if (isInsert[0].insertId > 0) {
+                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                    if (feeDetails[0][0].paidAmount == null) {
+                        feeDetails[0][0].paidAmount = 0;
+                    }
+                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                    let uquery = ``;
+
+                    if (balance == 0) {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    } else {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    }
+
+                    let update = await promisePool.query(uquery);
+                    if (update[0].affectedRows) {
+                        res.send(["Record Added", "success"]);
+                    } else {
+                        res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                    }
+                } else {
+                    res.send("Record Not Added", "", "error");
+                }
+
+            }
+        } else if (tuitionFeeBalance > 0) {
+            query2 += `,'3'`;
+            if (paidAmount > tuitionFeeBalance) {
+                let details = await getStudentFeeDetails(data.feeId);
+                let bal = details.bal - tuitionFeeBalance;
+                query2 += `,'${tuitionFeeBalance}',${bal})`;
+                remainingPaidAmount = paidAmount - universityFeeBalance;
+                let isInsert = await promisePool.query(`${query + query2}`);
+                if (isInsert[0].insertId > 0) {
+                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                    if (feeDetails[0][0].paidAmount == null) {
+                        feeDetails[0][0].paidAmount = 0;
+                    }
+                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                    let uquery = ``;
+
+                    if (balance == 0) {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    } else {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    }
+
+                    let update = await promisePool.query(uquery);
+                    if (update[0].affectedRows) {
+                        res.send(["Record Added", "success"]);
+                    } else {
+                        res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                    }
+                } else {
+                    res.send("Record Not Added", "", "error");
+                }
+            } else {
+                let details = await getStudentFeeDetails(data.feeId);
+                let bal = details.bal - paidAmount;
+                query2 += `,'${paidAmount}',${bal})`;
+
+                let isInsert = await promisePool.query(`${query + query2}`);
+                if (isInsert[0].insertId > 0) {
+                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                    if (feeDetails[0][0].paidAmount == null) {
+                        feeDetails[0][0].paidAmount = 0;
+                    }
+                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+
+                    let uquery = ``;
+
+                    if (balance == 0) {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    } else {
+                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    }
+
+                    let update = await promisePool.query(uquery);
+                    if (update[0].affectedRows) {
+                        res.send(["Record Added", "success"]);
+                    } else {
+                        res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
+                    }
+                } else {
+                    res.send("Record Not Added", "", "error");
+                }
+
+            }
+        }
+    // } else {
+    //     res.send([`Please Clear The Delete Transcation`, "warning"]);
+    // }
+
+});
+
+app.post('/getfeetransactions', async (req, res) => {
+    let data = req.body;
+    let feeDetails = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_id='${data.feeId}'  AND fee_type NOT IN('0','-1') `);
+    res.send(feeDetails[0]);
+});
+
+app.post('/getconsolidatefeesdetails', async (req, res) => {
+    let data = req.body;
+    const printTransactionYearWise = (transaction) => {
+        let totalPaidAmt = 0;
+        let bal = 0;
+        let table = `
+        <table style="border-collapse:collapse;width:100%;" border="1" class="mt-4 table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th>Sl No</th>
+            <th>USN</th>
+			<th>Transaction id</th>
+            <th>Fee Type</th>
+            <th>Paid Date</th>
+            <th>Scroll No</th>
+            <th>Paid Amount</th>
+            <th>Balance</th>
+        </tr>
+    </thead>
+    <tbody>`;
+        if (transaction[0].length == 0) {
+            table += `<tr><td style="text-align:center" colspan="9">No Data Found</td></tr>`
+        } else {
+
+            for (let j = 0; j < transaction[0].length; j++) {
+                const element = transaction[0][j];
+                totalPaidAmt += parseFloat(element.paid_amt);
+                bal = element.bal;
+                table += `
+            <tr>
+                <td>${j + 1}</td>
+                <td>${element.usn}</td>
+                <td>${element.trans_id}</td>
+                <td>${element.fee_type}</td>
+                <td>${formatDate("", element.paid_date)}</td>
+                <td>${element.scr_no}</td>
+                <td>${numberWithCommas(element.paid_amt)}</td>
+                <td>${numberWithCommas(element.bal)}</td>
+            </tr>
+            `;
+            }
+        }
+
+        table += `
+    <tr>
+        <td colspan="6" class="text-center">Total</td>
+        <td>${numberWithCommas(totalPaidAmt)}</td>
+        <td>${numberWithCommas(bal)}</td>
+    </tr>
+    </tbody>
+    </table>`;
+        return table;
+    }
+
+    let studentDetails = await promisePool.query(`SELECT student_id,usn,name,(SELECT iname FROM college WHERE id=s.cid) AS iname,(SELECT type FROM student_details WHERE student_id=s.student_id) AS type,(SELECT academic_year FROM student_details WHERE student_id=s.student_id) AS ad_year FROM student_info s WHERE cid='${data.cid}' AND (usn='${data.usn}' OR student_id='${data.usn}')`);
+    let feeDetails = await promisePool.query(`SELECT * FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1)`);
+    let year1Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=1  AND fee_type NOT IN('0','-1') `);
+    let year2Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=2  AND fee_type NOT IN('0','-1') `);
+    let year3Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
+    let year4Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=4  AND fee_type NOT IN('0','-1') `);
+    let year5Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
+
+    let body = `<div class="card font-weight-bold text-uppercase">
+    <div class="card-body">
+    <h2 style="text-align: center;" class="mb-3">${studentDetails[0][0].iname}</h2>
+    <div class="row">
+            <div class="col-sm-3 font-weight-bold">Name: ${studentDetails[0][0].name}</div>
+            <div class="col-sm-2 font-weight-bold">USN: ${studentDetails[0][0].usn}</div>
+            <div class="col-sm-3 font-weight-bold">Student Id: ${studentDetails[0][0].student_id}</div>
+            <div class="col-sm-2 font-weight-bold">Admission Year: ${studentDetails[0][0].ad_year} </div>
+            <div class="col-sm-2 font-weight-bold">Student Type: ${studentDetails[0][0].type}</div>
+
+            <h4 class="mt-3" style="text-align:center;">Fee Fixation From 1<sup>st</sup> to ${data.cid == 1 ? '4<sup>th</sup>' : '5<sup>th</sup>'} Year</h4>
+            <table class="table table-bordered table-striped" style="border-collapse:collapse;width:100%;" border="1">
+                <thead class="thead-dark">
+                    <tr>
+                        <th rowspan="2">Year</th>
+                        <th rowspan="2">Academic Year</th>
+                        <th style="text-align: center;" colspan="5">Fee Fixed</th>
+                        <th style="text-align: center;" colspan="5">Paid Fee</th>
+                        <th style="text-align: center;" colspan="5">Balance</th>
+                    </tr>
+                    <tr>
+                        <th>University</th>
+                        <th>Tuition</th>
+                        ${data.cid == 1 ? '<th>Institute</th>' : '<th>Nasa</th>'}
+                        ${data.cid == 1 ? '<th>Old Balance</th>' : '<th>Library</th>'}
+                        <th>Total</th>
+                        
+                        <th>University</th>
+                        <th>Tuition</th>
+                        ${data.cid == 1 ? '<th>Institute</th>' : '<th>Nasa</th>'}
+                        ${data.cid == 1 ? '<th>Old Balance</th>' : '<th>Library</th>'}
+                        <th>Total</th>
+                        
+                        <th>University</th>
+                        <th>Tuition</th>
+                        ${data.cid == 1 ? '<th>Institute</th>' : '<th>Nasa</th>'}
+                        ${data.cid == 1 ? '<th>Old Balance</th>' : '<th>Library</th>'}
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+    let gFeeFixed = 0;
+    let gFeePaid = 0;
+    let gBalance = 0;
+    for (let i = 0; i < feeDetails[0].length; i++) {
+        const element = feeDetails[0][i];
+        let universityFeePaid = 0;
+        let instituteFeePaid = 0;
+        let tuitionFeePaid = 0;
+        let oldBalanceFeePaid = 0;
+        let totalFeeFixed = 0;
+        let totalFeePaid = 0;
+        let nasaFeePaid = 0;
+        let libryFeePaid = 0;
+
+        let balance = 0;
+        if (element.cid == 1) {
+            universityFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 1);
+            instituteFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 2);
+            tuitionFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 3);
+            oldBalanceFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 6);
+            totalFeeFixed = element.uni_fee + element.inst_fee + element.tut_fee + element.old_bal;
+            gFeeFixed += totalFeeFixed
+            totalFeePaid = universityFeePaid + instituteFeePaid + tuitionFeePaid + oldBalanceFeePaid;
+            gFeePaid += totalFeePaid
+            balance = totalFeeFixed - totalFeePaid;
+            gBalance += balance
+        } else if (element.cid == 6) {
+            universityFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 7);
+            tuitionFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 8);
+            nasaFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 9);
+            libryFeePaid = await getHeadWisePaidAmount(element.cid, element.id, 10);
+            totalFeeFixed = element.uni_fee + element.nasa_fee + element.tut_fee + element.libry_fee;
+            gFeeFixed += totalFeeFixed
+            totalFeePaid = universityFeePaid + nasaFeePaid + tuitionFeePaid + libryFeePaid;
+            gFeePaid += totalFeePaid
+            balance = totalFeeFixed - totalFeePaid;
+            gBalance += balance
+        }
+        body += `<tr>
+                        <td>${element.year}</td>
+                        <td>${element.acd_year}</td>
+                        <td>${numberWithCommas(element.uni_fee)}</td>
+                        <td>${numberWithCommas(element.tut_fee)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(element.inst_fee) : numberWithCommas(element.nasa_fee)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(element.old_bal) : numberWithCommas(element.libry_fee)}</td>
+                        <td>${numberWithCommas(totalFeeFixed)}</td>
+                        <td>${numberWithCommas(universityFeePaid)}</td>
+                        <td>${numberWithCommas(tuitionFeePaid)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(instituteFeePaid) : numberWithCommas(nasaFeePaid)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(oldBalanceFeePaid) : numberWithCommas(libryFeePaid)}</td>
+                        <td>${numberWithCommas(totalFeePaid)}</td>
+                        <td>${numberWithCommas(element.uni_fee - universityFeePaid)}</td>
+                        <td>${numberWithCommas(element.tut_fee - tuitionFeePaid)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(element.inst_fee - instituteFeePaid) : numberWithCommas(element.nasa_fee - nasaFeePaid)}</td>
+                        <td>${element.cid == 1 ? numberWithCommas(element.old_bal - oldBalanceFeePaid) : numberWithCommas(element.libry_fee - libryFeePaid)}</td>
+                        <td>${numberWithCommas(balance)}</td>
+                    </tr>
+                    `;
+    }
+    body += `
+    <tr>
+        <td colspan='6' class='text-center'>Grand Total Fee Fixed</td>
+        <td>${numberWithCommas(gFeeFixed)}</td>
+        <td colspan='4' class='text-center'>Grand Total Paid</td>
+        <td>${numberWithCommas(gFeePaid)}</td>
+        <td colspan='4' class='text-center'>Grand Total Balance</td>
+        <td>${numberWithCommas(gBalance)}</td>
+    </tr>
+    </tbody>
+    </table>
+    <h4 style="text-align:center;">1st Year Fee Transactions</h4>
+    ${printTransactionYearWise(year1Transaction)}
+    <h4 style="text-align:center;">2nd Year Fee Transactions</h4>
+    ${printTransactionYearWise(year2Transaction)}
+    <h4 style="text-align:center;">3rd Year Fee Transactions</h4>
+    ${printTransactionYearWise(year3Transaction)}
+    <h4 style="text-align:center;">4th Year Fee Transactions</h4>
+    ${printTransactionYearWise(year4Transaction)}
+    </div>
+    </div>
+    </div>`;
+    res.send(body);
+});
+
+app.post('/getfeetranscationsfordelete', async (req, res) => {
+    let data = req.body;
+    let transactions = await promisePool.query(`SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}' AND fee_type NOT IN('0','-1') GROUP BY trans_id`);
+    res.send(transactions[0]);
+});
+
+app.post('/deletestudenttranscationstatus', async (req, res) => {
+    let data = req.body;
+    let transactions = await promisePool.query(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,SUM(paid_amt) AS paid_amt,usn,trans_id,paid_date,scr_no,admin1,admin2 FROM fee_transactions f WHERE cid='${data.cid}' AND delete_sts=1 GROUP BY trans_id;`);
+    let table = `<table class="table table-bordered">
+    <thead class="thead-dark">
+    <tr>
+        <th>sl no</th>
+        <th>usn</th>
+        <th>name</th>
+        <th>transaction id</th>
+        <th>paid date</th>
+        <th>scroll no</th>
+        <th>paid amount</th>`;
+        if(data.cid == 1){
+            table+=`<th>Registrar</th>
+            <th>VP Admin</th>`;
+        }else{
+            table+=`<th>HOD</th>`;
+        }
+    table+=`</tr>
+    </thead>
+    <tbody>`;
+    for (let i = 0; i < transactions[0].length; i++) {
+        const element = transactions[0][i];
+        let admin1Status = ``;
+        let admin2Status = ``;
+
+        if (element.admin1 == '') {
+            admin1Status = `<span class='text-warning font-weight-bold'>Pending</span>`;
+        } else if (element.admin1.toString().toLowerCase() != 'rejected') {
+            admin1Status = `<span class='text-success font-weight-bold'>Approved</span>`;
+        } else {
+            admin1Status = `<span class='text-danger font-weight-bold'>Rejected</span>`;
+        }
+
+        if (element.admin2 == '') {
+            admin2Status = `<span class='text-warning font-weight-bold'>Pending</span>`;
+        } else if (element.admin2.toString().toLowerCase() != 'rejected') {
+            admin2Status = `<span class='text-success font-weight-bold'>Approved</span>`;
+        } else {
+            admin2Status = `<span class='text-danger font-weight-bold'>Rejected</span>`;
+        }
+        table += `<tr>
+            <td>${i + 1}</td>
+            <td>${element.usn}</td>
+            <td>${element.name}</td>
+            <td>${element.trans_id}</td>
+            <td>${formatDate('db', element.paid_date)}</td>
+            <td>${element.scr_no}</td>
+            <td>${numberWithCommas(element.paid_amt)}</td>`
+            if(data.cid == 1){
+                table+=`<td>${admin1Status}</td>
+                <td>${admin2Status}</td>`;
+            }else{
+                table+=`<td>${admin1Status}</td>`;
+            }
+        table+=`</tr>`;
+
+    }
+    table += `</tbody>
+    </table>`;
+    res.send(table);
+});
+
+app.post('/adddeletetranscation', async (req, res) => {
+    let data = req.body;
+    let transactions = await promisePool.query(`SELECT trans_id FROM fee_transactions f WHERE id='${data.id}'`);
+    let update = await promisePool.query(`UPDATE fee_transactions SET delete_sts=1  WHERE trans_id='${transactions[0][0].trans_id}'`);
+    if (update[0].affectedRows > 0) {
+        res.send(["Record Submitted For Approval", "success"]);
+    } else {
+        res.send(["Record Not Submitted", "error"]);
+    }
+
+});
+
+app.post('/approvedeletetransaction', async (req, res) => {
+    let data = req.body;
+    let approvalDetails = await promisePool.query(`SELECT admin,(SELECT name FROM admin WHERE id=f.fid) AS name FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='editTransction'`);
+
+    let query = '';
+    if (data.cid == 1) {
+        if (approvalDetails[0][0].admin == 1) {
+            query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1='' AND admin1!='rejected' GROUP BY trans_id`;
+        } else if (approvalDetails[0][0].admin == 2) {
+            query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1!='' AND admin1!='rejected' AND admin2='' AND admin2!='rejected' GROUP BY trans_id`;
+        }
+    } else if (data.cid == 6) {
+        query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1='' AND admin1!='rejected' GROUP BY trans_id`;
+    }
+    let transactions = await promisePool.query(query);
+    res.send([transactions[0], approvalDetails[0][0]]);
+});
+
+app.post('/deletetranscationupdate', async (req, res) => {
+    let data = req.body;
+    let query = '';
+    let feeFixed = 0;
+    if (data.cid == 1) {
+        if (data.admin == 1) {
+            query = `UPDATE fee_transactions SET admin1='${data.sign}' WHERE trans_id='${data.trans_id}'`
+            let transactions = await promisePool.query(query);
+            if (transactions[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    res.send(["Approved", "success"]);
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        } else if (data.admin == 2) {
+            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE trans_id='${data.trans_id}'`);
+            if (transaction2[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    let trDetails = await promisePool.query(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
+                    let feeDetails = await promisePool.query(`SELECT old_bal,paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0][0].fee_id}'`);
+                    if (data.cid == 1) {
+                        feeFixed = feeDetails[0][0].old_bal + feeDetails[0][0].uni_fee + feeDetails[0][0].inst_fee + feeDetails[0][0].tut_fee;
+                    } else {
+                        feeFixed = feeDetails[0][0].uni_fee + feeDetails[0][0].tut_fee + feeDetails[0][0].nasa_fee + feeDetails[0][0].libry_fee;
+                    }
+                    let paid_amt = feeDetails[0][0].paid_fee - trDetails[0][0].pait_amt;
+                    let bal_amt = feeDetails[0][0].bal + trDetails[0][0].pait_amt;
+                    let transaction2 = await promisePool.query(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0][0].id}'`);
+                    if (transaction2[0].affectedRows > 0) {
+                        let transaction3 = await promisePool.query(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
+                        if (transaction3[0].affectedRows > 0) {
+                            let getAllTransactions = await promisePool.query(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0][0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
+                            if(getAllTransactions[0].length > 0){
+                                let insert = 0;
+                                for (let i = 0; i < getAllTransactions[0].length; i++) {
+                                    const element = getAllTransactions[0][i];
+                                    let bal = feeFixed - element.paid_amt;
+                                    feeFixed -= element.paid_amt;
+                                    let transaction4 = await promisePool.query(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
+                                    if (transaction4[0].affectedRows > 0) {
+                                        insert++;
+                                    }
+                                }
+                                if (insert > 0) {
+                                    if (data.sign == 'rejected') {
+                                        res.send(["Rejected", "success"]);
+                                    } else {
+                                        res.send(["Approved", "success"]);
+                                    }
+                                } else {
+                                    res.send(["Delete Transactions Approved And  paid fee and balance fee updated AND fee transction deleted but all transaction balance not updated", "error"]);
+                                }
+                            }else{
+                                if (data.sign == 'rejected') {
+                                    res.send(["Rejected", "success"]);
+                                } else {
+                                    res.send(["Approved", "success"]);
+                                }
+                            }
+                        } else {
+                            res.send(["Delete Transactions Approved And  paid fee and balance fee updated but fee transction not deleted", "error"]);
+                        }
+                    } else {
+                        res.send(["Delete Transactions Approved but paid fee and balance fee not update", "error"]);
+                    }
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        }
+    } else if (data.cid == 6) {
+        if (data.admin == 1) {
+            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE trans_id='${data.trans_id}'`);
+            if (transaction2[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    let trDetails = await promisePool.query(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
+                    let feeDetails = await promisePool.query(`SELECT paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0][0].fee_id}'`);
+                    if (data.cid == 1) {
+                        feeFixed = feeDetails[0][0].old_bal + feeDetails[0][0].uni_fee + feeDetails[0][0].inst_fee + feeDetails[0][0].tut_fee;
+                    } else {
+                        feeFixed = feeDetails[0][0].uni_fee + feeDetails[0][0].tut_fee + feeDetails[0][0].nasa_fee + feeDetails[0][0].libry_fee;
+                    }
+                    let paid_amt = feeDetails[0][0].paid_fee - trDetails[0][0].pait_amt;
+                    let bal_amt = feeDetails[0][0].bal + trDetails[0][0].pait_amt;
+                    let transaction2 = await promisePool.query(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0][0].id}'`);
+                    if (transaction2[0].affectedRows > 0) {
+                        let transaction3 = await promisePool.query(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
+                        if (transaction3[0].affectedRows > 0) {
+                            let getAllTransactions = await promisePool.query(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0][0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
+                            let insert = 0;
+                            for (let i = 0; i < getAllTransactions[0].length; i++) {
+                                const element = getAllTransactions[0][i];
+                                feeFixed -= paid_amt;
+                                bal = feeFixed - paid_amt;
+                                let transaction4 = await promisePool.query(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
+                                if (transaction4[0].affectedRows > 0) {
+                                    insert++;
+                                }
+                            }
+                            if (insert > 0) {
+                                if (data.sign == 'rejected') {
+                                    res.send(["Rejected", "success"]);
+                                } else {
+                                    res.send(["Approved", "success"]);
+                                }
+                            } else {
+                                res.send(["Delete Transactions Approved And  paid fee and balance fee updated AND fee transction deleted but all transaction balance not updated", "error"]);
+                            }
+                        } else {
+                            res.send(["Delete Transactions Approved And  paid fee and balance fee updated but fee transction not deleted", "error"]);
+                        }
+                    } else {
+                        res.send(["Delete Transactions Approved but paid fee and balance fee not update", "error"]);
+                    }
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        }
+    }
+
+
+});
+
+app.post('/getfeedetailsfordelete', async (req, res) => {
+    let data = req.body;
+    let feeHeads = '';
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+    let transactions = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,year,acd_year,paid_fee FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}'`);
+    res.send(transactions[0]);
 });

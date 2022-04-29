@@ -85,6 +85,7 @@ export default function MappingCo(props) {
     }
 
     const [body, setbody] = useState(tbody.map((role, i) => {
+        console.log(role,i)
         return <tr key={i}>
             <td>{role}</td>
             <td><textarea required="" name="coStatement[]" className="coStatement form-control" placeholder="Enter CO Statement" cols="80"></textarea></td>
@@ -97,7 +98,7 @@ export default function MappingCo(props) {
             </td>
         </tr>
     }))
-
+    console.log(tbody)
     return (
         <div className="card">
             <div className="card-body table-responsive">
