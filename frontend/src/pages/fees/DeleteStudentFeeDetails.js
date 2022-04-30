@@ -32,7 +32,7 @@ export default function DeleteStudentFeeDetails(props) {
         })
             .then((response) => {
                 if (response.data.length > 0) {
-                    console.log(response.data)
+                    // console.log(response.data)
                     setResult(<StudentDeleteFeeDetails transaction={response.data} baseURL={props.baseURL} userDetails={props.userDetails} formatDate={props.formatDate} numberWithCommas={props.numberWithCommas} />)
                 }else{
                     swal("No Data found","","warning");
@@ -60,7 +60,7 @@ export default function DeleteStudentFeeDetails(props) {
                     <center><button type="submit" className="btn btn-primary btn-sm rounded mr-2">
                         <i className="fa fa-dot-circle-o"></i> Submit
                     </button>
-                        <button type="reset" className="btn btn-danger btn-sm rounded">
+                        <button type="reset" className="btn btn-danger btn-sm rounded" onClick={ () => setResult('') }>
                             <i className="fa fa-ban"></i> Reset
                         </button>
                     </center>

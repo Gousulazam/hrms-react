@@ -8,18 +8,25 @@ export default function StudentDeleteFeeDetails(props) {
     let transaction = props.transaction;
     let totalPaidAmount = 0;
     const [id, setId] = useState(0);
+    const [paidFee, setPaidFee] = useState(0);
     const [remarks, setRemarks] = useState('');
+
     const addDeleteTransaction = async (e) => {
         e.preventDefault();
-        await axios.post(`${props.baseURL}/adddeletetranscation`, {
-            id
+        await axios.post(`${props.baseURL}/addfeedetailsdeletetranscation`, {
+            id,paidFee,remarks,uid: props.userDetails.id
         })
             .then((response) => {
                 swal(response.data[0], "", response.data[1]);
-                navigate("/deletetransaction");
+                navigate("/deletestudentfeedetails");
             });
-
     }
+
+    const setValues = (e) => {
+        setId(e.target.value);
+        setPaidFee(e.target.attributes.getNamedItem('paid_fee').value);
+    }
+
     return (
         <div className="card font-weight-bold">
             <div className="card-body">
@@ -53,7 +60,7 @@ export default function StudentDeleteFeeDetails(props) {
                                         <td>{props.numberWithCommas(data.paid_fee)}</td>
                                         <td>{props.numberWithCommas(data.fee_fixed-data.paid_fee)}</td>
                                         <td><textarea type="text" className="form-control" name="remark" placeholder="Enter Remarks" onChange={ e => setRemarks(e.target.value)} required></textarea></td>
-                                        <td>Delete</td>
+                                        <td><form onSubmit={addDeleteTransaction}><button type='submit' className="btn btn-danger rounded" paid_fee={ data.paid_fee ==0 ? 0 : data.paid_fee } onClick={ e => setValues(e) } value={data.id}>Delete</button></form></td>
                                     </tr>
                                 })
                             }

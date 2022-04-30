@@ -56,6 +56,7 @@ import ViewDeleteTranscationStatus from './pages/fees/ViewDeleteTranscationStatu
 import ApproveDeleteTranscations from './pages/fees/ApproveDeleteTranscations';
 import DeleteTransactionsDetails from './pages/fees/DeleteTransactionsDetails';
 import DeleteStudentFeeDetails from './pages/fees/DeleteStudentFeeDetails';
+import DeleteStudentfeeDetailsStatus from './pages/fees/DeleteStudentfeeDetailsStatus';
 
 function App() {
   const Dashboard = () => {
@@ -222,6 +223,7 @@ function App() {
               <Route path="/viewdeletetranscationstatus" element={<ViewDeleteTranscationStatus baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/approvedeletetranscations" element={<ApproveDeleteTranscations baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/deletestudentfeedetails" element={<DeleteStudentFeeDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/deletestudentfeedetailsstatus" element={<DeleteStudentfeeDetailsStatus baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
             </Routes>
           </BrowserRouter>
         </div>
