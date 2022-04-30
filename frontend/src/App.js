@@ -57,6 +57,7 @@ import ApproveDeleteTranscations from './pages/fees/ApproveDeleteTranscations';
 import DeleteTransactionsDetails from './pages/fees/DeleteTransactionsDetails';
 import DeleteStudentFeeDetails from './pages/fees/DeleteStudentFeeDetails';
 import DeleteStudentfeeDetailsStatus from './pages/fees/DeleteStudentfeeDetailsStatus';
+import ApproveDeleteStudentFeedetails from './pages/fees/ApproveDeleteStudentFeedetails';
 
 function App() {
   const Dashboard = () => {
@@ -224,6 +225,7 @@ function App() {
               <Route path="/approvedeletetranscations" element={<ApproveDeleteTranscations baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/deletestudentfeedetails" element={<DeleteStudentFeeDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/deletestudentfeedetailsstatus" element={<DeleteStudentfeeDetailsStatus baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/approvedeletestudentfeedetails" element={<ApproveDeleteStudentFeedetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
             </Routes>
           </BrowserRouter>
         </div>

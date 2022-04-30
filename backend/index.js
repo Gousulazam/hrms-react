@@ -2717,3 +2717,89 @@ app.post('/getstudentdeletestatus', async (req, res) => {
     table += `</tbody></table>`;
     res.send(table)
 });
+
+app.post('/approvedeletestudentfeedetails', async (req, res) => {
+    let data = req.body;
+    let approvalDetails = await promisePool.query(`SELECT admin,(SELECT iname FROM college WHERE id=f.cid) AS iname FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='feeFixationChange'`);
+
+    let query = '';
+    if (data.cid == 1) {
+        if (approvalDetails[0][0].admin == 1) {
+            query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1='' AND admin1!='rejected'`;
+        } else if (approvalDetails[0][0].admin == 2) {
+            query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1!='' AND admin1!='rejected' AND admin2='' AND admin2!='rejected'`;
+        }
+    } else if (data.cid == 6) {
+        query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1='' AND admin1!='rejected'`;
+    }
+    
+    let transactions = await promisePool.query(query);
+    res.send([transactions[0], approvalDetails[0][0]]);
+});
+
+app.post('/deletefeedetailsupdate', async (req, res) => {
+    let data = req.body;
+    let query = '';
+    if (data.cid == 1) {
+        if (data.admin == 1) {
+            query = `UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`
+            let transactions = await promisePool.query(query);
+            if (transactions[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    res.send(["Approved", "success"]);
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        } else if (data.admin == 2) {
+            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
+            let deleteTrDtls = await promisePool.query(`SELECT fee_id FROM fee_transactions  WHERE id='${data.id}'`);
+            if (transaction2[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    let deleteTrns = await promisePool.query(`DELETE FROM fee_transactions  WHERE fee_id='${deleteTrDtls[0][0].fee_id}' AND delete_sts!=2`);
+                    if(deleteTrns[0].affectedRows > 0){
+                        let deleteFeeDtls = await promisePool.query(`DELETE FROM fee_details  WHERE id='${deleteTrDtls[0][0].fee_id}'`);
+                        if(deleteFeeDtls[0].affectedRows > 0){
+                            res.send(["Approved", "success"]);
+                        }else{
+                        res.send(["Transction Approved and fee transaction Deleted but fee details not deleted","error"])
+                        }
+                    }else{
+                        res.send(["Transction Approved But fee transaction and fee details not deleted","error"])
+                    }
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        }
+    } else if (data.cid == 6) {
+        if (data.admin == 1) {
+            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`);
+            if (transaction2[0].affectedRows > 0) {
+                if (data.sign == 'rejected') {
+                    res.send(["Rejected", "success"]);
+                } else {
+                    let deleteTrns = await promisePool.query(`DELETE FROM fee_transactions  WHERE fee_id='${data.id}' AND delete_sts!=2`);
+                    if(deleteTrns[0].affectedRows > 0){
+                        let deleteFeeDtls = await promisePool.query(`DELETE FROM fee_details  WHERE id='${data.id}'`);
+                        if(deleteFeeDtls[0].affectedRows > 0){
+                            res.send(["Approved", "success"]);
+                        }else{
+                        res.send(["Transction Approved and fee transaction Deleted but fee details not deleted","error"])
+                        }
+                    }else{
+                        res.send(["Transction Approved But fee transaction and fee details not deleted","error"])
+                    }
+                }
+            } else {
+                res.send(["Not Approved", "error"]);
+            }
+        }
+    }
+
+
+});
