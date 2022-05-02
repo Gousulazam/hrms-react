@@ -31,12 +31,12 @@ export default function StudentDeleteFeeDetails(props) {
         <div className="card font-weight-bold">
             <div className="card-body">
                 <div className="row">
-                    <div class="col-sm-4">Name: {transaction[0].name}</div>
-                    <div class="col-sm-4">USN: {transaction[0].usn}</div>
-                    <div class="col-sm-4">Student Id: {transaction[0].student_id}</div>
-                    <table style={{ borderCollapse: "collapse", width: "100%" }} border="1" id="table1" class="mt-2 table table-bordered table-striped">
-                        <thead class="thead-dark">
-                            <tr class="text-uppercase">
+                    <div className="col-sm-4">Name: {transaction[0].name}</div>
+                    <div className="col-sm-4">USN: {transaction[0].usn}</div>
+                    <div className="col-sm-4">Student Id: {transaction[0].student_id}</div>
+                    <table style={{ borderCollapse: "collapse", width: "100%" }} border="1" id="table1" className="mt-2 table table-bordered table-striped">
+                        <thead className="thead-dark">
+                            <tr className="text-uppercase">
                                 <th>Sl No</th>
                                 <th>Name</th>
                                 <th>Academic Year</th>

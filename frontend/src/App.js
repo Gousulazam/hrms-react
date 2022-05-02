@@ -58,6 +58,9 @@ import DeleteTransactionsDetails from './pages/fees/DeleteTransactionsDetails';
 import DeleteStudentFeeDetails from './pages/fees/DeleteStudentFeeDetails';
 import DeleteStudentfeeDetailsStatus from './pages/fees/DeleteStudentfeeDetailsStatus';
 import ApproveDeleteStudentFeedetails from './pages/fees/ApproveDeleteStudentFeedetails';
+import EditStudentFeedetails from './pages/fees/EditStudentFeedetails';
+import EditFeeFixationStatus from './pages/fees/EditFeeFixationStatus';
+import ApproveEditFeeFixation from './pages/fees/ApproveEditFeeFixation';
 
 function App() {
   const Dashboard = () => {
@@ -226,6 +229,9 @@ function App() {
               <Route path="/deletestudentfeedetails" element={<DeleteStudentFeeDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/deletestudentfeedetailsstatus" element={<DeleteStudentfeeDetailsStatus baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/approvedeletestudentfeedetails" element={<ApproveDeleteStudentFeedetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/editstudentfeedetails" element={<EditStudentFeedetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/editfeefixationstatus" element={<EditFeeFixationStatus baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/approveeditfeefixation" element={<ApproveEditFeeFixation baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
             </Routes>
           </BrowserRouter>
         </div>

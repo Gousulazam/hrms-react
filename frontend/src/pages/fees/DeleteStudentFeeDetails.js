@@ -31,11 +31,12 @@ export default function DeleteStudentFeeDetails(props) {
             usn: usn,
         })
             .then((response) => {
-                if (response.data.length > 0) {
+                if (response.data[0].acd_year!=null) {
                     // console.log(response.data)
                     setResult(<StudentDeleteFeeDetails transaction={response.data} baseURL={props.baseURL} userDetails={props.userDetails} formatDate={props.formatDate} numberWithCommas={props.numberWithCommas} />)
                 }else{
                     swal("No Data found","","warning");
+                    setResult("");
                 }
             });
     }

@@ -35,6 +35,7 @@ export default function DeleteTransaction(props) {
                     setResult(<DeleteTransactionsDetails transaction={response.data} baseURL={props.baseURL} userDetails={props.userDetails} formatDate={props.formatDate} numberWithCommas={props.numberWithCommas} />)
                 }else{
                     swal("No Transactions found","","warning");
+                    setResult("");
                 }
             });
     }
@@ -59,7 +60,7 @@ export default function DeleteTransaction(props) {
                     <center><button type="submit" className="btn btn-primary btn-sm rounded mr-2">
                         <i className="fa fa-dot-circle-o"></i> Submit
                     </button>
-                        <button type="reset" className="btn btn-danger btn-sm rounded">
+                        <button type="reset" className="btn btn-danger btn-sm rounded" onClick={ () => setResult("") }>
                             <i className="fa fa-ban"></i> Reset
                         </button>
                     </center>

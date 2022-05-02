@@ -8,7 +8,7 @@ export default function FeeDetailsDepartment(props) {
     const [body, setBody] = useState("");
     const test = async () =>{
 
-        axios.post(`${props.baseURL}/departmentconsolidate`, {
+        axios.post(`${props.baseURL}/getdepartmentfeereport`, {
             did:state.did,
             academic_year:state.academicYear,
             year:state.year,
