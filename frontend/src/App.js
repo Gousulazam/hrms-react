@@ -61,6 +61,9 @@ import ApproveDeleteStudentFeedetails from './pages/fees/ApproveDeleteStudentFee
 import EditStudentFeedetails from './pages/fees/EditStudentFeedetails';
 import EditFeeFixationStatus from './pages/fees/EditFeeFixationStatus';
 import ApproveEditFeeFixation from './pages/fees/ApproveEditFeeFixation';
+import PayDepartmentWise from './pages/fees/PayDepartmentWise';
+import DepartmentWisePay from './pages/fees/DepartmentWisePay';
+import IaMarksEntry from './pages/attainment/IaMarksEntry';
 
 function App() {
   const Dashboard = () => {
@@ -232,6 +235,9 @@ function App() {
               <Route path="/editstudentfeedetails" element={<EditStudentFeedetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/editfeefixationstatus" element={<EditFeeFixationStatus baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/approveeditfeefixation" element={<ApproveEditFeeFixation baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/paydepartmentwise" element={<PayDepartmentWise baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/departmentwisepay" element={<DepartmentWisePay baseURL={baseURL} userDetails={userDetails} numberWithCommas={numberWithCommas} />} />
+              <Route path="/iamarksentry" element={<IaMarksEntry baseURL={baseURL} userDetails={userDetails} />} />
             </Routes>
           </BrowserRouter>
         </div>

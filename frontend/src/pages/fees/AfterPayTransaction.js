@@ -69,7 +69,7 @@ export default function AfterPayTransaction(props) {
                 </div>
                 <br /><br />
                 <center>
-                    <button className="btn btn-success rounded" onClick={()=> navigate("/payusnwise") }>Submit</button>
+                    <button className="btn btn-success rounded" onClick={()=> { if(state.redirect > 0){ navigate("/paydepartmentwise") }else{ navigate("/payusnwise") } } }>Submit</button>
                 </center>
             </div>
         </div>

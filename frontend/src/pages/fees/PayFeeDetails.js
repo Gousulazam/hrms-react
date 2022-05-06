@@ -11,7 +11,7 @@ export default function PayFeeDetails(props) {
     const [feeId, setFeeId] = useState("");
     const [balance1, setBalance1] = useState("");
     const [student_id, setStudent_id] = useState("");
-    
+    let redirect = 0;
     const numberWithCommas = (x) => {
         return x.toString().split('.')[0].length > 3 ? x.toString().substring(0, x.toString().split('.')[0].length - 3).replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + x.toString().substring(x.toString().split('.')[0].length - 3) : x.toString();
     }
@@ -38,7 +38,7 @@ export default function PayFeeDetails(props) {
             }).then((response) => {
                 let data = response.data;
                 swal(data[0],"",data[1]);
-                navigate("/afterpaytransaction", { state: { feeId } });
+                navigate("/afterpaytransaction", { state: { feeId,redirect } });
             });
         }
     }
