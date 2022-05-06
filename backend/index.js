@@ -1068,7 +1068,7 @@ app.post('/attendanceAdded', async (req, res) => {
     let day = weekday[d.getDay()];
     if (data.id != '') {
         let date = formatDate('db', data.date)
-        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,batch,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
             if (!err) {
                 let subjectDetails = rows[0];
                 let lpId = '';
@@ -1107,13 +1107,15 @@ app.post('/attendanceAdded', async (req, res) => {
                         let attendanceSubmited = 0;
                         for (let k = 0; k < data.attendnaceData.length; k++) {
                             const element3 = data.attendnaceData[k];
-                            attendance = await promisePool.query(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.values}','${subjectDetails.academic_year}','${date}')`);
+                            attendance = await promisePool.query(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
                             if (attendance[0].insertId > 0) {
                                 attendanceSubmited++;
                             }
                         }
                         if (attendanceSubmited > 0) {
                             res.send([{ msg: "Attendance Submitted", icon: "success" }]);
+                        }else{
+                            res.send([{ msg: "Class Added But Attendance Not Added", icon: "danger" }]);
                         }
                     }
                 } else {
@@ -1133,7 +1135,7 @@ app.post('/labattendanceAdded', async (req, res) => {
     let day = weekday[d.getDay()];
     if (data.id != '') {
         let date = formatDate('db', data.date)
-        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,batch,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
             if (!err) {
                 let subjectDetails = rows[0];
                 let lpId = '';
@@ -1163,7 +1165,7 @@ app.post('/labattendanceAdded', async (req, res) => {
                         let attendanceSubmited = 0;
                         for (let k = 0; k < data.attendnaceData.length; k++) {
                             const element3 = data.attendnaceData[k];
-                            attendance = await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.values}','${subjectDetails.academic_year}','${date}')`);
+                            attendance = await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
                             if (attendance[0].insertId > 0) {
                                 attendanceSubmited++;
                             }
@@ -1960,9 +1962,9 @@ app.post('/payfees', async (req, res) => {
     };
 
     let student_feeDetails = await getStudentFeeDetails(data.feeId);
-    let universityFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, 1);
+    let universityFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, student_feeDetails.cid == 1 ? 1:7);
     let universityFeeBalance = parseFloat(student_feeDetails['uni_fee'] - universityFeePaid);
-    let tuitionFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, 3);
+    let tuitionFeePaid = await getHeadWisePaidAmount(student_feeDetails.cid, student_feeDetails.id, student_feeDetails.cid == 1 ? 3:8);
     let tuitionFeeBalance = parseFloat(student_feeDetails['tut_fee'] - tuitionFeePaid);
     let remainingPaidAmount = 0;
     let paidAmount = parseFloat(data.paidAmt);
@@ -3065,4 +3067,30 @@ app.post('/editfeedetailsupdate', async (req, res) => {
     }
 
 
+});
+
+app.post('/getstudentfeelist', async (req, res) => {
+    let data = req.body;
+    let query = '';
+    let feeHeads = '';
+    
+    if (data.cid == 1) {
+        feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
+    } else {
+        feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
+    }
+    if(data.did=='All' && data.year=='All'){
+        query = `SELECT  si.usn,si.name,si.student_id,${feeHeads} AS fee_fixed,sa.paid_fee,sa.id,(SELECT iname FROM college WHERE id=sa.cid) AS iname FROM fee_details sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sa.cid='${data.cid}' AND sa.acd_year='${data.academicYear}' GROUP BY sa.student_id ORDER BY si.usn ASC`;
+    }else if(data.did!='' && data.year=='All'){
+        query = `SELECT  si.usn,si.name,si.student_id,${feeHeads} AS fee_fixed,sa.paid_fee,sa.id,(SELECT iname FROM college WHERE id=sa.cid) AS iname FROM fee_details sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sa.cid='${data.cid}' AND  sa.did='${data.did}' AND sa.acd_year='${data.academicYear}' GROUP BY sa.student_id ORDER BY si.usn ASC`;
+    }else if(data.did=='All' && data.year!=''){
+        query = `SELECT  si.usn,si.name,si.student_id,${feeHeads} AS fee_fixed,sa.paid_fee,sa.id,(SELECT iname FROM college WHERE id=sa.cid) AS iname FROM fee_details sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sa.cid='${data.cid}' AND  sa.year='${data.year}' AND sa.acd_year='${data.academicYear}' GROUP BY sa.student_id ORDER BY si.usn ASC`;
+    }else if(data.did!='' && data.year!=''){
+        query = `SELECT  si.usn,si.name,si.student_id,${feeHeads} AS fee_fixed,sa.paid_fee,sa.id,(SELECT iname FROM college WHERE id=sa.cid) AS iname FROM fee_details sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sa.cid='${data.cid}' AND sa.did='${data.did}' AND  sa.year='${data.year}' AND sa.acd_year='${data.academicYear}' GROUP BY sa.student_id ORDER BY si.usn ASC`;
+    }
+
+    // console.log(query)
+
+    let studentList = await promisePool.query(query);
+    res.send(studentList[0]);
 });
