@@ -15,7 +15,7 @@ export default function ReportSubject(props) {
             id: state.subject
         })
             .then((response) => {
-                setSubjectDetails(response.data[0]);
+                setSubjectDetails(response.data);
             });
 
         axios.post(`${props.baseURL}/getsubjectreport`, {
@@ -34,7 +34,7 @@ export default function ReportSubject(props) {
                 <br />
                 <center>
                     <strong>
-                        {subjectDetails['iname']} <br />
+                        { subjectDetails['iname'] } <br />
                         Department Of {subjectDetails['dept']} <br />
                         Semester - {subjectDetails['sem']}<br />subject - {subjectDetails['sname']+" ("+subjectDetails['scode']+")"}<br />
                         REPORT FROM {fdate} TO {tdate}</strong>

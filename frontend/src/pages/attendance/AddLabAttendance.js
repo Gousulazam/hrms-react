@@ -132,7 +132,7 @@ export default function Addattendance(props) {
     })
 
       .then((response) => {
-        setSubjectDetails(response.data[0]);
+        setSubjectDetails(response.data);
       });
 
     axios.post(`${props.baseURL}/getattendancelist`, {
