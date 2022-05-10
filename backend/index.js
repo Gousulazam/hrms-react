@@ -1,5 +1,3 @@
-const mysql = require('mysql');
-const mysql2 = require('mysql2');
 const QueryBuilder = require('node-querybuilder');
 const express = require('express');
 const fileupload = require("express-fileupload");
@@ -13,22 +11,6 @@ app.use(express.static("files"));
 app.use(bodyparser.json());
 app.use(bodyparser.urlencoded({ extended: true }));
 
-//MySQL details
-var mysqlConnection = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'semes',
-    multipleStatements: true
-});
-
-const pool = mysql2.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'semes',
-    multipleStatements: true
-});
 
 const settings = {
     "host": "localhost",
@@ -38,22 +20,16 @@ const settings = {
     "pool_size": 50
 };
 
-const pool1 = new QueryBuilder(settings, 'mysql', 'pool');
+const pool = new QueryBuilder(settings, 'mysql', 'pool');
 
 const runQuery = async (query) => {
-    let db = await pool1.get_connection();
+    let db = await pool.get_connection();
     let run = db.query(query)
     await db.release();
     return run;
 }
 
-mysqlConnection.connect((err) => {
-    if (!err)
-        console.log('Connection Established Successfully');
-    else
-        console.log('Connection Failed!' + JSON.stringify(err, undefined, 2));
-});
-const promisePool = pool.promise();
+
 //Establish the server connection
 //PORT ENVIRONMENT VARIABLE
 const port = process.env.PORT || 5000;
@@ -133,16 +109,16 @@ const numberWithCommas = (x) => {
 }
 
 const getHeadWisePaidAmount = async (cid, feesId, feeType) => {
-    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount FROM fee_transactions WHERE cid='${cid}' AND fee_id='${feesId}' AND fee_type='${feeType}'`);
-    if (feeDetails[0][0]['paidAmount'] == null) {
+    let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount FROM fee_transactions WHERE cid='${cid}' AND fee_id='${feesId}' AND fee_type='${feeType}'`);
+    if (feeDetails[0]['paidAmount'] == null) {
         return 0;
     }
-    return feeDetails[0][0]['paidAmount'];
+    return feeDetails[0]['paidAmount'];
 }
 
 let getTransactionId = async (cid, did) => {
-    let transcationTableId = await promisePool.query("SELECT MAX(id)+1 AS maxId FROM `fee_transactions` ORDER BY id DESC");
-    return `${cid + did + "T" + transcationTableId[0][0]['maxId']}`;
+    let transcationTableId = await runQuery("SELECT MAX(id)+1 AS maxId FROM `fee_transactions` ORDER BY id DESC");
+    return `${cid + did + "T" + transcationTableId[0]['maxId']}`;
 };
 
 app.post('/checkuser', async (req, res) => {
@@ -1614,64 +1590,116 @@ app.post('/attendanceAdded', async (req, res) => {
     const d = new Date(data.date);
     let day = weekday[d.getDay()];
     if (data.id != '') {
-        let date = formatDate('db', data.date)
-        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,batch,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
-            if (!err) {
-                let subjectDetails = rows[0];
-                let lpId = '';
-                let status = '';
-                for (let index = 0; index < data.lessonPlan.length; index++) {
-                    const element = data.lessonPlan[index];
-                    if (element.subTopic != '') {
-                        lpId += `${element.subTopic},`;
-                    } else {
-                        lpId += `${element.topic},`;
-                    }
-                    status += `${element.status},`;
+        let date = formatDate('db', data.date);
+        let rows = await runQuery(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,batch,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id='${data.id}'`);
+        let subjectDetails = rows[0];
+        let lpId = '';
+        let status = '';
+        for (let index = 0; index < data.lessonPlan.length; index++) {
+            const element = data.lessonPlan[index];
+            if (element.subTopic != '') {
+                lpId += `${element.subTopic},`;
+            } else {
+                lpId += `${element.topic},`;
+            }
+            status += `${element.status},`;
+        }
+        let classInsert = await runQuery(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+        let upcheck = 0;
+        if (classInsert.insertId > 0) {
+            for (let j = 0; j < data.lessonPlan.length; j++) {
+                const element1 = data.lessonPlan[j];
+                let id = 0;
+                if (element1.subTopic != '') {
+                    id = element1.subTopic;
+                } else {
+                    id = element1.topic;
                 }
-                let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
-                let upcheck = 0;
-                if (classInsert[0].insertId > 0) {
-                    for (let j = 0; j < data.lessonPlan.length; j++) {
-                        const element1 = data.lessonPlan[j];
-                        let id = 0;
-                        if (element1.subTopic != '') {
-                            id = element1.subTopic;
-                        } else {
-                            id = element1.topic;
-                        }
-                        if (element1.status == "completed") {
-                            let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`);
-                            if (updateLessonPlan[0].affectedRows > 0) {
-                                upcheck++;
-                            }
-                        } else {
-                            upcheck++;
-                        }
-
-                    }
-                    if (upcheck > 0) {
-                        let attendanceSubmited = 0;
-                        for (let k = 0; k < data.attendnaceData.length; k++) {
-                            const element3 = data.attendnaceData[k];
-                            attendance = await promisePool.query(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
-                            if (attendance[0].insertId > 0) {
-                                attendanceSubmited++;
-                            }
-                        }
-                        if (attendanceSubmited > 0) {
-                            res.send([{ msg: "Attendance Submitted", icon: "success" }]);
-                        } else {
-                            res.send([{ msg: "Class Added But Attendance Not Added", icon: "danger" }]);
-                        }
+                if (element1.status == "completed") {
+                    let updateLessonPlan = await runQuery(`UPDATE tlsnpln SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`);
+                    if (updateLessonPlan.affectedRows > 0) {
+                        upcheck++;
                     }
                 } else {
-                    res.send([{ msg: "Class Not Added", icon: "danger" }]);
+                    upcheck++;
                 }
-            } else {
-                console.log(err);
+
             }
-        })
+            if (upcheck > 0) {
+                let attendanceSubmited = 0;
+                for (let k = 0; k < data.attendnaceData.length; k++) {
+                    const element3 = data.attendnaceData[k];
+                    attendance = await runQuery(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert.insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
+                    if (attendance.insertId > 0) {
+                        attendanceSubmited++;
+                    }
+                }
+                if (attendanceSubmited > 0) {
+                    res.send([{ msg: "Attendance Submitted", icon: "success" }]);
+                } else {
+                    res.send([{ msg: "Class Added But Attendance Not Added", icon: "danger" }]);
+                }
+            }
+        } else {
+            res.send([{ msg: "Class Not Added", icon: "danger" }]);
+        }
+        // mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,batch,fid,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+        //     if (!err) {
+        //         let subjectDetails = rows[0];
+        //         let lpId = '';
+        //         let status = '';
+        //         for (let index = 0; index < data.lessonPlan.length; index++) {
+        //             const element = data.lessonPlan[index];
+        //             if (element.subTopic != '') {
+        //                 lpId += `${element.subTopic},`;
+        //             } else {
+        //                 lpId += `${element.topic},`;
+        //             }
+        //             status += `${element.status},`;
+        //         }
+        //         let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+        //         let upcheck = 0;
+        //         if (classInsert[0].insertId > 0) {
+        //             for (let j = 0; j < data.lessonPlan.length; j++) {
+        //                 const element1 = data.lessonPlan[j];
+        //                 let id = 0;
+        //                 if (element1.subTopic != '') {
+        //                     id = element1.subTopic;
+        //                 } else {
+        //                     id = element1.topic;
+        //                 }
+        //                 if (element1.status == "completed") {
+        //                     let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`);
+        //                     if (updateLessonPlan[0].affectedRows > 0) {
+        //                         upcheck++;
+        //                     }
+        //                 } else {
+        //                     upcheck++;
+        //                 }
+
+        //             }
+        //             if (upcheck > 0) {
+        //                 let attendanceSubmited = 0;
+        //                 for (let k = 0; k < data.attendnaceData.length; k++) {
+        //                     const element3 = data.attendnaceData[k];
+        //                     attendance = await promisePool.query(`INSERT INTO attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
+        //                     if (attendance[0].insertId > 0) {
+        //                         attendanceSubmited++;
+        //                     }
+        //                 }
+        //                 if (attendanceSubmited > 0) {
+        //                     res.send([{ msg: "Attendance Submitted", icon: "success" }]);
+        //                 } else {
+        //                     res.send([{ msg: "Class Added But Attendance Not Added", icon: "danger" }]);
+        //                 }
+        //             }
+        //         } else {
+        //             res.send([{ msg: "Class Not Added", icon: "danger" }]);
+        //         }
+        //     } else {
+        //         console.log(err);
+        //     }
+        // })
     }
 });
 
@@ -1681,85 +1709,126 @@ app.post('/labattendanceAdded', async (req, res) => {
     const d = new Date(data.date);
     let day = weekday[d.getDay()];
     if (data.id != '') {
-        let date = formatDate('db', data.date)
-        mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,batch,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
-            if (!err) {
-                let subjectDetails = rows[0];
-                let lpId = '';
-                let status = '';
-                for (let index = 0; index < data.lessonPlan.length; index++) {
-                    const element = data.lessonPlan[index];
-                    lpId += `${element.topic},`;
-                    status += `${element.status},`;
-                }
-                let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
-                let upcheck = 0;
-                if (classInsert[0].insertId > 0) {
-                    for (let j = 0; j < data.lessonPlan.length; j++) {
-                        const element1 = data.lessonPlan[j];
-                        let id = element1.topic;
-                        if (element1.status == "completed") {
-                            let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln_lab SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`);
-                            if (updateLessonPlan[0].affectedRows > 0) {
-                                upcheck++;
-                            }
-                        } else {
-                            upcheck++;
-                        }
-
-                    }
-                    if (upcheck > 0) {
-                        let attendanceSubmited = 0;
-                        for (let k = 0; k < data.attendnaceData.length; k++) {
-                            const element3 = data.attendnaceData[k];
-                            attendance = await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
-                            if (attendance[0].insertId > 0) {
-                                attendanceSubmited++;
-                            }
-                        }
-                        if (attendanceSubmited > 0) {
-                            res.send([{ msg: "Attendance Submitted", icon: "success" }]);
-                        }
+        let date = formatDate('db', data.date);
+        let rows = await runQuery(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,batch,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id='${data.id}'`);
+        let subjectDetails = rows[0];
+        let lpId = '';
+        let status = '';
+        for (let index = 0; index < data.lessonPlan.length; index++) {
+            const element = data.lessonPlan[index];
+            lpId += `${element.topic},`;
+            status += `${element.status},`;
+        }
+        let classInsert = await runQuery(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+        let upcheck = 0;
+        if (classInsert.insertId > 0) {
+            for (let j = 0; j < data.lessonPlan.length; j++) {
+                const element1 = data.lessonPlan[j];
+                let id = element1.topic;
+                if (element1.status == "completed") {
+                    let updateLessonPlan = await runQuery(`UPDATE tlsnpln_lab SET status='${element1.status}',class_id='${classInsert.insertId}'  WHERE id='${id}'`);
+                    if (updateLessonPlan.affectedRows > 0) {
+                        upcheck++;
                     }
                 } else {
-                    res.send([{ msg: "Class Not Added", icon: "danger" }]);
+                    upcheck++;
                 }
-            } else {
-                console.log(err);
+
             }
-        })
+            if (upcheck > 0) {
+                let attendanceSubmited = 0;
+                for (let k = 0; k < data.attendnaceData.length; k++) {
+                    const element3 = data.attendnaceData[k];
+                    attendance = await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert.insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
+                    if (attendance.insertId > 0) {
+                        attendanceSubmited++;
+                    }
+                }
+                if (attendanceSubmited > 0) {
+                    res.send([{ msg: "Attendance Submitted", icon: "success" }]);
+                }
+            }
+        } else {
+            res.send([{ msg: "Class Not Added", icon: "danger" }]);
+        }
+        // mysqlConnection.query(`SELECT sname,scode,sem,cid,college,dept,did,dv,stype,academic_year,fname,fid,batch,(SELECT period FROM sal_ttable WHERE scode='s.scode' AND sem='s.sem' AND dv='s.dv' AND fid='s.fid' AND day='${day}') AS period FROM subject s WHERE id=?`, [data.id], async (err, rows, fields) => {
+        //     if (!err) {
+        //         let subjectDetails = rows[0];
+        //         let lpId = '';
+        //         let status = '';
+        //         for (let index = 0; index < data.lessonPlan.length; index++) {
+        //             const element = data.lessonPlan[index];
+        //             lpId += `${element.topic},`;
+        //             status += `${element.status},`;
+        //         }
+        //         let classInsert = await promisePool.query(`INSERT INTO class(sname, scd, stype, dept, did, college, cid, sem, dv, fname, fid, date, period, stim, etim,batch, lp_id, acd_year, status) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.stype}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${subjectDetails.fname}','${subjectDetails.fid}','${date}','${subjectDetails.period}','${data.startTime}','${data.endTime}','${subjectDetails.batch}','${lpId}','${subjectDetails.academic_year}','${status}')`);
+        //         let upcheck = 0;
+        //         if (classInsert[0].insertId > 0) {
+        //             for (let j = 0; j < data.lessonPlan.length; j++) {
+        //                 const element1 = data.lessonPlan[j];
+        //                 let id = element1.topic;
+        //                 if (element1.status == "completed") {
+        //                     let updateLessonPlan = await promisePool.query(`UPDATE tlsnpln_lab SET status='${element1.status}',class_id='${classInsert[0].insertId}'  WHERE id='${id}'`);
+        //                     if (updateLessonPlan[0].affectedRows > 0) {
+        //                         upcheck++;
+        //                     }
+        //                 } else {
+        //                     upcheck++;
+        //                 }
+
+        //             }
+        //             if (upcheck > 0) {
+        //                 let attendanceSubmited = 0;
+        //                 for (let k = 0; k < data.attendnaceData.length; k++) {
+        //                     const element3 = data.attendnaceData[k];
+        //                     attendance = await promisePool.query(`INSERT INTO lab_attend(class_id,student_id,dept,did,college,cid,sem,dv,scd,atn,academic_year,date) VALUES ('${classInsert[0].insertId}','${element3.student_id}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.college}','${subjectDetails.cid}','${subjectDetails.sem}','${subjectDetails.dv}','${element3.scode}','${element3.classes}','${subjectDetails.academic_year}','${date}')`);
+        //                     if (attendance[0].insertId > 0) {
+        //                         attendanceSubmited++;
+        //                     }
+        //                 }
+        //                 if (attendanceSubmited > 0) {
+        //                     res.send([{ msg: "Attendance Submitted", icon: "success" }]);
+        //                 }
+        //             }
+        //         } else {
+        //             res.send([{ msg: "Class Not Added", icon: "danger" }]);
+        //         }
+        //     } else {
+        //         console.log(err);
+        //     }
+        // })
     }
 });
 
 app.post('/getcos', async (req, res) => {
     let data = req.body;
-    let rows = await promisePool.query(`SELECT cid,did,scode,dv,academic_year FROM subject s WHERE id='${data.id}'`);
-    let subjectDetails = rows[0][0];
+    let rows = await runQuery(`SELECT cid,did,scode,dv,academic_year FROM subject s WHERE id='${data.id}'`);
+    let subjectDetails = rows[0];
 
     // console.log(subjectDetails);
-    let rows2 = await promisePool.query(`SELECT id,cos FROM nba_co WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`);
-    res.send(rows2[0]);
+    let rows2 = await runQuery(`SELECT id,cos FROM nba_co WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`);
+    res.send(rows2);
 });
 
 app.post('/addpo', async (req, res) => {
     let data = req.body;
-    let rows = await promisePool.query(`SELECT fid,cid,did,scode,dv,academic_year  FROM subject s WHERE id='${data.id}'`);
-    let subjectDetails = rows[0][0];
-    let checkRecord = await promisePool.query(`SELECT id FROM nba_po WHERE scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND pos='${data.pos}' AND co_id='${data.co_id}'`);
+    let rows = await runQuery(`SELECT fid,cid,did,scode,dv,academic_year  FROM subject s WHERE id='${data.id}'`);
+    let subjectDetails = rows[0];
+    let checkRecord = await runQuery(`SELECT id FROM nba_po WHERE scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND pos='${data.pos}' AND co_id='${data.co_id}'`);
     // console.log(checkRecord[0].length)
-    if (checkRecord[0].length > 0) {
-        let insert = await promisePool.query(`UPDATE nba_po SET po='${data.po}' WHERE id='${checkRecord[0][0].id}'`);
-        res.send([insert[0].affectedRows]);
+    if (checkRecord.length > 0) {
+        let insert = await runQuery(`UPDATE nba_po SET po='${data.po}' WHERE id='${checkRecord[0].id}'`);
+        res.send([insert.affectedRows]);
     } else {
-        let insert = await promisePool.query(`INSERT INTO nba_po(fid, cid, did, scode, dv, co_id, pos, po,academic_year)VALUES ('${subjectDetails.fid}','${subjectDetails.cid}','${subjectDetails.did}','${subjectDetails.scode}','${subjectDetails.dv}','${data.co_id}','${data.pos}','${data.po}','${subjectDetails.academic_year}')`);
-        res.send([insert[0].insertId]);
+        let insert = await runQuery(`INSERT INTO nba_po(fid, cid, did, scode, dv, co_id, pos, po,academic_year)VALUES ('${subjectDetails.fid}','${subjectDetails.cid}','${subjectDetails.did}','${subjectDetails.scode}','${subjectDetails.dv}','${data.co_id}','${data.pos}','${data.po}','${subjectDetails.academic_year}')`);
+        res.send([insert.insertId]);
     }
 });
 
 app.post('/getdepartmentdetails', async (req, res) => {
     let data = req.body;
-    let rows = await promisePool.query(`SELECT name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE id='${data.did}'`);
-    res.send(rows[0][0])
+    let rows = await runQuery(`SELECT name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE id='${data.did}'`);
+    res.send(rows[0])
 });
 
 app.post('/psoadded', async (req, res) => {
@@ -1769,15 +1838,15 @@ app.post('/psoadded', async (req, res) => {
     for (let i = 0; i < data.psoData.length; i++) {
         const element = data.psoData[i];
 
-        let checkRecord = await promisePool.query(`SELECT id FROM nba_pso WHERE did='${data.did}' AND pso='${element.pso}' AND academic_year='${data.academic_year}'`);
-        if (checkRecord[0].length > 0) {
-            let insert = await promisePool.query(`UPDATE nba_pso SET stmt='${element.stmt}' WHERE id='${checkRecord[0][0].id}'`);
-            if (insert[0].affectedRows > 0) {
+        let checkRecord = await runQuery(`SELECT id FROM nba_pso WHERE did='${data.did}' AND pso='${element.pso}' AND academic_year='${data.academic_year}'`);
+        if (checkRecord.length > 0) {
+            let insert = await runQuery(`UPDATE nba_pso SET stmt='${element.stmt}' WHERE id='${checkRecord[0].id}'`);
+            if (insert.affectedRows > 0) {
                 insertCheck++;
             }
         } else {
-            let insert = await promisePool.query(`INSERT INTO nba_pso(fid, cid, did,pso,stmt,academic_year) VALUES ('${data.fid}','${data.cid}','${data.did}','${element.pso}','${element.stmt}','${data.academic_year}')`);
-            if (insert[0].insertId > 0) {
+            let insert = await runQuery(`INSERT INTO nba_pso(fid, cid, did,pso,stmt,academic_year) VALUES ('${data.fid}','${data.cid}','${data.did}','${element.pso}','${element.stmt}','${data.academic_year}')`);
+            if (insert.insertId > 0) {
                 insertCheck++;
             }
         }
@@ -1787,37 +1856,41 @@ app.post('/psoadded', async (req, res) => {
 
 app.post('/getpso', async (req, res) => {
     let data = req.body;
-    let rows = await promisePool.query(`SELECT pso,stmt,id FROM nba_pso WHERE did='${data.did}' AND academic_year='${data.academic_year}'`);
-    res.send(rows[0])
+    let rows = await runQuery(`SELECT pso,stmt,id FROM nba_pso WHERE did='${data.did}' AND academic_year='${data.academic_year}'`);
+    res.send(rows)
 });
 
 app.delete('/deletepso/:id', async (req, res) => {
     let data = req.params;
-    let rows = await promisePool.query(`DELETE FROM nba_pso WHERE id='${data.id}'`);
-    res.send([rows[0].affectedRows]);
+    let rows = await runQuery(`DELETE FROM nba_pso WHERE id='${data.id}'`);
+    res.send([rows.affectedRows]);
 });
 
-app.post('/getdepartmentdetailsbyid', (req, res) => {
+app.post('/getdepartmentdetailsbyid', async (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT * FROM `dept` WHERE id=?', [data.did], (err, rows, fields) => {
-        if (!err) {
-            res.send(rows);
-        } else {
-            console.log(err);
-        }
-    })
+    let rows = await runQuery(`SELECT * FROM dept WHERE id='${data.id}'`);
+    res.send(rows);
+    // mysqlConnection.query('SELECT * FROM `dept` WHERE id=?', [data.did], (err, rows, fields) => {
+    //     if (!err) {
+    //         res.send(rows);
+    //     } else {
+    //         console.log(err);
+    //     }
+    // })
 
 });
 
-app.post('/getstudentdetail', (req, res) => {
+app.post('/getstudentdetail', async (req, res) => {
     let data = req.body;
-    mysqlConnection.query('SELECT si.*,sa.rno FROM student_info si RIGHT JOIN student_academic sa ON si.student_id=sa.student_id WHERE sa.id=? ', [data.studentId], (err, rows, fields) => {
-        if (!err) {
-            res.send(rows);
-        } else {
-            console.log(err);
-        }
-    })
+    let rows = await runQuery(`SELECT si.*,sa.rno FROM student_info si RIGHT JOIN student_academic sa ON si.student_id=sa.student_id WHERE sa.id='${data.studentId}'`);
+    res.send(rows);
+    // mysqlConnection.query('SELECT si.*,sa.rno FROM student_info si RIGHT JOIN student_academic sa ON si.student_id=sa.student_id WHERE sa.id=? ', [data.studentId], (err, rows, fields) => {
+    //     if (!err) {
+    //         res.send(rows);
+    //     } else {
+    //         console.log(err);
+    //     }
+    // })
 
 });
 
@@ -2047,10 +2120,10 @@ app.post('/getfeedepartmentoption', async (req, res) => {
     } else {
         query += `SELECT name,id FROM dept WHERE cid='${data.cid}' AND academic='1' ORDER BY name ASC`
     }
-    let rows = await promisePool.query(query);
+    let rows = await runQuery(query);
     let option = `<option value="">Select Department</option><option value="All">All</option>`;
-    for (let index = 0; index < rows[0].length; index++) {
-        option += `<option value="${rows[0][index].id}">${rows[0][index].name}</option>`
+    for (let index = 0; index < rows.length; index++) {
+        option += `<option value="${rows[index].id}">${rows[index].name}</option>`
     }
     res.send(option);
 });
@@ -2082,9 +2155,9 @@ app.post('/getdepartmentfeereport', async (req, res) => {
     let body = '';
     let row = '';
     if (data.did != 'All') {
-        row = await promisePool.query(`SELECT name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE id='${data.did}'`);
+        row = await runQuery(`SELECT name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE id='${data.did}'`);
     } else {
-        row = await promisePool.query(`SELECT iname,("All") AS name FROM college WHERE id='${data.cid}'`);
+        row = await runQuery(`SELECT iname,("All") AS name FROM college WHERE id='${data.cid}'`);
     }
     let year = "All";
     if (data.year == 1) {
@@ -2103,8 +2176,8 @@ app.post('/getdepartmentfeereport', async (req, res) => {
         year = `5th`
 
     }
-    body += `<h3 align="center">${row[0][0].iname}</h3>
-           <h4 class="card-title" align="center">Fee Details of ${year} Year ${row[0][0].name} Department For Academic Year ${data.academic_year}</h4>
+    body += `<h3 align="center">${row[0].iname}</h3>
+           <h4 class="card-title" align="center">Fee Details of ${year} Year ${row[0].name} Department For Academic Year ${data.academic_year}</h4>
            <table class="table table-bordered">
            <thead class="thead-dark">
            <tr>
@@ -2168,14 +2241,14 @@ app.post('/getdepartmentfeereport', async (req, res) => {
         query = `SELECT usn,year,(SELECT name FROM fee_quota WHERE id=f.quota) AS quota,(SELECT name FROM fee_categories WHERE id=f.cat) AS category,(SELECT ${feeHeads} FROM fee_details WHERE cid=f.cid AND id=f.id) AS fee_fixed,(SELECT sum(paid_amt) FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,(SELECT name FROM student_info WHERE student_id=f.student_id) AS name ,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Scholarship') as Scholarship,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Loan') as Loan,(SELECT amt FROM std_fund WHERE usn=f.usn AND type='Other') as Other FROM fee_details f  WHERE cid='${data.cid}' AND did='${data.did}' AND year='${data.year}' AND acd_year='${data.academic_year}' AND fee_drpot='0' ORDER BY year,usn ASC`
     }
 
-    let feeDetails = await promisePool.query(query);
+    let feeDetails = await runQuery(query);
     let gfee_fixed = 0;
     let gpaid_fee = 0;
     let gScholarship = 0;
     let gLoan = 0;
     let gOther = 0;
-    for (let i = 0; i < feeDetails[0].length; i++) {
-        const element = feeDetails[0][i];
+    for (let i = 0; i < feeDetails.length; i++) {
+        const element = feeDetails[i];
         let fee_fixed = element.fee_fixed;
         if (fee_fixed == null) {
             fee_fixed = 0;
@@ -2241,7 +2314,7 @@ app.post('/getdepartmentfeereport', async (req, res) => {
 
 app.post('/getconsolidatedepartmentdetails', async (req, res) => {
     let data = req.body;
-    let departments = await promisePool.query(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
+    let departments = await runQuery(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
     let feeHeads = '';
     if (data.cid == 1) {
         feeHeads = 'SUM(old_bal+uni_fee+inst_fee+tut_fee)';
@@ -2249,7 +2322,7 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
 
-    let body = `<h3 align="center">${departments[0][0].iname}</h3>
+    let body = `<h3 align="center">${departments[0].iname}</h3>
     <h4 align="center">Fees Details For Academic Year ${data.academic_year}</h4>
     <table class="table table-bordered table-striped" border="1" style="width:100%;border-collapse:collapse;">
                     <thead class="thead-dark">
@@ -2264,17 +2337,17 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
                     <tbody>`;
     let gfee_fixed = 0;
     let gpaid_fee = 0;
-    for (let i = 0; i < departments[0].length; i++) {
-        const element = departments[0][i];
-        let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
+    for (let i = 0; i < departments.length; i++) {
+        const element = departments[i];
+        let departmentFeeDetails = await runQuery(`SELECT ${feeHeads} AS fee_fixed,
                         (SELECT SUM(paid_amt) FROM fee_transactions WHERE acd_year=f.acd_year AND did=f.did AND fee_type NOT IN('0','-1')) AS paid_amt
                         FROM fee_details  f WHERE acd_year='${data.academic_year}' AND did='${element.id}'`)
-        let fee_fixed = departmentFeeDetails[0][0].fee_fixed;
+        let fee_fixed = departmentFeeDetails[0].fee_fixed;
         if (fee_fixed == null) {
             fee_fixed = 0;
         }
         gfee_fixed += fee_fixed;
-        let paid_fee = departmentFeeDetails[0][0].paid_amt;
+        let paid_fee = departmentFeeDetails[0].paid_amt;
         if (paid_fee == null) {
             paid_fee = 0;
         }
@@ -2303,7 +2376,7 @@ app.post('/getconsolidatedepartmentdetails', async (req, res) => {
 
 app.post('/departmentconsolidate', async (req, res) => {
     let data = req.body;
-    let departments = await promisePool.query(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
+    let departments = await runQuery(`SELECT id,name,(SELECT iname FROM college WHERE id=d.cid) AS iname FROM dept d WHERE cid='${data.cid}' AND academic=1 ORDER BY id`);
     let feeHeads = '';
     let title = '';
     let fdate = formatDate('', data.fromDate);
@@ -2326,7 +2399,7 @@ app.post('/departmentconsolidate', async (req, res) => {
         title = `Fee Collection From ${fdate} To ${tdate}`;
     }
 
-    let body = `<h3 align="center">${departments[0][0].iname}</h3>
+    let body = `<h3 align="center">${departments[0].iname}</h3>
     <h4 align="center">${title}</h4>
     <table class="table table-bordered table-striped" border="1" style="width:100%;border-collapse:collapse;">
                     <thead class="thead-dark">
@@ -2343,32 +2416,31 @@ app.post('/departmentconsolidate', async (req, res) => {
     let gfee_fixed = 0;
     let gpaid_fee = 0;
     let gcurrent_fee = 0;
-    for (let i = 0; i < departments[0].length; i++) {
-        const element = departments[0][i];
-        let departmentFeeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,
+    for (let i = 0; i < departments.length; i++) {
+        const element = departments[i];
+        let departmentFeeDetails = await runQuery(`SELECT ${feeHeads} AS fee_fixed,
                         (SELECT SUM(paid_amt) FROM fee_transactions WHERE acd_year=f.acd_year AND did=f.did AND fee_type NOT IN('0','-1')) AS paid_amt
                         FROM fee_details  f WHERE acd_year='${data.academic_year}' AND did='${element.id}'`);
 
         if (data.type == 'daily') {
-            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date='${data.fromDate}'`);
+            currentPaid = await runQuery(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date='${data.fromDate}'`);
         } else if (data.type == 'monthly') {
-            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}')`);
+            currentPaid = await runQuery(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND MONTH(paid_date)=MONTH('${data.fromDate}') AND YEAR(paid_date)=YEAR('${data.fromDate}')`);
         } else if (data.type == 'custom') {
-            currentPaid = await promisePool.query(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}'`);
+            currentPaid = await runQuery(`SELECT SUM(paid_amt) AS feePaid  FROM fee_transactions WHERE cid='${data.cid}' AND did='${element.id}' AND acd_year='${data.academic_year}' AND fee_type NOT IN('0','-1') AND paid_date BETWEEN '${data.fromDate}' AND '${data.toDate}'`);
         }
 
-        let fee_fixed = departmentFeeDetails[0][0].fee_fixed;
+        let fee_fixed = departmentFeeDetails[0].fee_fixed;
         if (fee_fixed == null) {
             fee_fixed = 0;
         }
         gfee_fixed += fee_fixed;
-        let paid_fee = departmentFeeDetails[0][0].paid_amt;
+        let paid_fee = departmentFeeDetails[0].paid_amt;
         if (paid_fee == null) {
             paid_fee = 0;
         }
         gpaid_fee += paid_fee;
-        console.log(currentPaid[0])
-        let currentPaid1 = currentPaid[0][0].feePaid;
+        let currentPaid1 = currentPaid[0].feePaid;
         if (currentPaid1 == null) {
             currentPaid1 = 0;
         }
@@ -2441,9 +2513,9 @@ app.post('/feecollectiondetails', async (req, res) => {
             colspan = 6;
         }
     }
-    let collegeDetails = await promisePool.query(`SELECT iname FROM college WHERE id='${data.cid}'`);
-    let transactionList = await promisePool.query(query);
-    body += `<h1 align="center" class="text-uppercase">${collegeDetails[0][0].iname}</h1>
+    let collegeDetails = await runQuery(`SELECT iname FROM college WHERE id='${data.cid}'`);
+    let transactionList = await runQuery(query);
+    body += `<h1 align="center" class="text-uppercase">${collegeDetails[0].iname}</h1>
     <h2 align="center" class="text-uppercase">${title}</h2>
     <table class="table table-bordered">
     <thead class="thead-dark">
@@ -2461,21 +2533,21 @@ app.post('/feecollectiondetails', async (req, res) => {
     </thead>
     <tbody>`;
     let gtotal = 0;
-    for (let i = 0; i < transactionList[0].length; i++) {
-        const element = transactionList[0][i];
-        let transctionDetails = await promisePool.query(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,(SELECT name FROM dept WHERE id=f.did) as dept,SUM(paid_amt) AS paid_amt,usn,scr_no,did,paid_date FROM fee_transactions f WHERE trans_id='${element.trans_id}'`);
+    for (let i = 0; i < transactionList.length; i++) {
+        const element = transactionList[i];
+        let transctionDetails = await runQuery(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,(SELECT name FROM dept WHERE id=f.did) as dept,SUM(paid_amt) AS paid_amt,usn,scr_no,did,paid_date FROM fee_transactions f WHERE trans_id='${element.trans_id}'`);
         body += `<tr>
             <td>${i + 1}</td>
-            <td>${transctionDetails[0][0].usn}</td>
-            <td>${transctionDetails[0][0].name}</td>
-            <td>${transctionDetails[0][0].dept}</td>`;
+            <td>${transctionDetails[0].usn}</td>
+            <td>${transctionDetails[0].name}</td>
+            <td>${transctionDetails[0].dept}</td>`;
         if (data.type == 'custom') {
-            body += `<td>${formatDate("", transctionDetails[0][0].paid_date)}</td>`;
+            body += `<td>${formatDate("", transctionDetails[0].paid_date)}</td>`;
         }
-        body += `<td>${transctionDetails[0][0].scr_no}</td>
-            <td>${numberWithCommas(transctionDetails[0][0].paid_amt)}</td>
+        body += `<td>${transctionDetails[0].scr_no}</td>
+            <td>${numberWithCommas(transctionDetails[0].paid_amt)}</td>
         </tr>`;
-        gtotal += transctionDetails[0][0].paid_amt;
+        gtotal += transctionDetails[0].paid_amt;
     }
     body += `<tr class="font-weight-bold">
     <td class="text-center" colspan="${colspan}" >Total</td>
@@ -2495,8 +2567,8 @@ app.post('/getpayfeedetails', async (req, res) => {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
 
-    let feeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,paid_fee,year,usn,student_id,id,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE cid='${data.cid}' AND usn='${data.usn}' LIMIT 1) AND verify='1' AND fee_drpot='0' GROUP BY year`);
-    res.send(feeDetails[0]);
+    let feeDetails = await runQuery(`SELECT ${feeHeads} AS fee_fixed,paid_fee,year,usn,student_id,id,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE cid='${data.cid}' AND usn='${data.usn}' LIMIT 1) AND verify='1' AND fee_drpot='0' GROUP BY year`);
+    res.send(feeDetails);
 });
 
 app.post('/payfees', async (req, res) => {
@@ -2504,8 +2576,8 @@ app.post('/payfees', async (req, res) => {
     let feeHeads = ``;
 
     let getStudentFeeDetails = async (id) => {
-        let feeDetails = await promisePool.query(`SELECT id,student_id,usn,cid,did,year,acd_year,uni_fee,tut_fee,bal FROM fee_details WHERE id='${id}' ORDER BY id DESC`);
-        return feeDetails[0][0];
+        let feeDetails = await runQuery(`SELECT id,student_id,usn,cid,did,year,acd_year,uni_fee,tut_fee,bal FROM fee_details WHERE id='${id}' ORDER BY id DESC`);
+        return feeDetails[0];
     };
 
     let student_feeDetails = await getStudentFeeDetails(data.feeId);
@@ -2536,24 +2608,24 @@ app.post('/payfees', async (req, res) => {
             let bal = details.bal - universityFeeBalance;
             query2 += `,'${universityFeeBalance}',${bal})`;
             remainingPaidAmount = paidAmount - universityFeeBalance;
-            let isInsert = await promisePool.query(`${query + query2}`);
-            if (isInsert[0].insertId > 0) {
-                let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                if (feeDetails[0][0].paidAmount == null) {
-                    feeDetails[0][0].paidAmount = 0;
+            let isInsert = await runQuery(`${query + query2}`);
+            if (isInsert.insertId > 0) {
+                let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                if (feeDetails[0].paidAmount == null) {
+                    feeDetails[0].paidAmount = 0;
                 }
-                let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                 let uquery = ``;
 
                 if (balance == 0) {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                 } else {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                 }
 
-                let update = await promisePool.query(uquery);
-                if (update[0].affectedRows) {
+                let update = await runQuery(uquery);
+                if (update.affectedRows) {
                     // res.send(["Record Added","success"]);
                     if (remainingPaidAmount > 0) {
                         if (tuitionFeeBalance > 0) {
@@ -2563,24 +2635,24 @@ app.post('/payfees', async (req, res) => {
                                 let details = await getStudentFeeDetails(data.feeId);
                                 let bal = details.bal - tuitionFeeBalance;
                                 query2 += `,'${tuitionFeeBalance}',${bal})`;
-                                let isInsert = await promisePool.query(`${query + query2}`);
-                                if (isInsert[0].insertId > 0) {
-                                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                                    if (feeDetails[0][0].paidAmount == null) {
-                                        feeDetails[0][0].paidAmount = 0;
+                                let isInsert = await runQuery(`${query + query2}`);
+                                if (isInsert.insertId > 0) {
+                                    let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                                    if (feeDetails[0].paidAmount == null) {
+                                        feeDetails[0].paidAmount = 0;
                                     }
-                                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                                    let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                                     let uquery = ``;
 
                                     if (balance == 0) {
-                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                                     } else {
-                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                                     }
 
-                                    let update = await promisePool.query(uquery);
-                                    if (update[0].affectedRows) {
+                                    let update = await runQuery(uquery);
+                                    if (update.affectedRows) {
                                         res.send(["Record Added", "success"]);
                                     } else {
                                         res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
@@ -2593,24 +2665,24 @@ app.post('/payfees', async (req, res) => {
                                 let bal = details.bal - remainingPaidAmount;
                                 query2 += `,'${remainingPaidAmount}',${bal})`;
 
-                                let isInsert = await promisePool.query(`${query + query2}`);
-                                if (isInsert[0].insertId > 0) {
-                                    let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                                    if (feeDetails[0][0].paidAmount == null) {
-                                        feeDetails[0][0].paidAmount = 0;
+                                let isInsert = await runQuery(`${query + query2}`);
+                                if (isInsert.insertId > 0) {
+                                    let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                                    if (feeDetails[0].paidAmount == null) {
+                                        feeDetails[0].paidAmount = 0;
                                     }
-                                    let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                                    let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                                     let uquery = ``;
 
                                     if (balance == 0) {
-                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                                     } else {
-                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                                        uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                                     }
 
-                                    let update = await promisePool.query(uquery);
-                                    if (update[0].affectedRows) {
+                                    let update = await runQuery(uquery);
+                                    if (update.affectedRows) {
                                         res.send(["Record Added", "success"]);
                                     } else {
                                         res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
@@ -2633,24 +2705,24 @@ app.post('/payfees', async (req, res) => {
             let bal = details.bal - paidAmount;
             query2 += `,'${paidAmount}',${bal})`;
 
-            let isInsert = await promisePool.query(`${query + query2}`);
-            if (isInsert[0].insertId > 0) {
-                let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                if (feeDetails[0][0].paidAmount == null) {
-                    feeDetails[0][0].paidAmount = 0;
+            let isInsert = await runQuery(`${query + query2}`);
+            if (isInsert.insertId > 0) {
+                let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                if (feeDetails[0].paidAmount == null) {
+                    feeDetails[0].paidAmount = 0;
                 }
-                let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                 let uquery = ``;
 
                 if (balance == 0) {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                 } else {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                 }
 
-                let update = await promisePool.query(uquery);
-                if (update[0].affectedRows) {
+                let update = await runQuery(uquery);
+                if (update.affectedRows) {
                     res.send(["Record Added", "success"]);
                 } else {
                     res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
@@ -2667,24 +2739,24 @@ app.post('/payfees', async (req, res) => {
             let bal = details.bal - tuitionFeeBalance;
             query2 += `,'${tuitionFeeBalance}',${bal})`;
             remainingPaidAmount = paidAmount - universityFeeBalance;
-            let isInsert = await promisePool.query(`${query + query2}`);
-            if (isInsert[0].insertId > 0) {
-                let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                if (feeDetails[0][0].paidAmount == null) {
-                    feeDetails[0][0].paidAmount = 0;
+            let isInsert = await runQuery(`${query + query2}`);
+            if (isInsert.insertId > 0) {
+                let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                if (feeDetails[0].paidAmount == null) {
+                    feeDetails[0].paidAmount = 0;
                 }
-                let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                 let uquery = ``;
 
                 if (balance == 0) {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                 } else {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                 }
 
-                let update = await promisePool.query(uquery);
-                if (update[0].affectedRows) {
+                let update = await runQuery(uquery);
+                if (update.affectedRows) {
                     res.send(["Record Added", "success"]);
                 } else {
                     res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
@@ -2697,24 +2769,24 @@ app.post('/payfees', async (req, res) => {
             let bal = details.bal - paidAmount;
             query2 += `,'${paidAmount}',${bal})`;
 
-            let isInsert = await promisePool.query(`${query + query2}`);
-            if (isInsert[0].insertId > 0) {
-                let feeDetails = await promisePool.query(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
-                if (feeDetails[0][0].paidAmount == null) {
-                    feeDetails[0][0].paidAmount = 0;
+            let isInsert = await runQuery(`${query + query2}`);
+            if (isInsert.insertId > 0) {
+                let feeDetails = await runQuery(`SELECT sum(paid_amt) AS paidAmount,(SELECT ${feeHeads} FROM fee_details WHERE id='${student_feeDetails.id}') AS fee_fixed FROM fee_transactions WHERE cid='${student_feeDetails.cid}' AND fee_id='${student_feeDetails.id}' AND fee_type NOT IN(0,-1)`);
+                if (feeDetails[0].paidAmount == null) {
+                    feeDetails[0].paidAmount = 0;
                 }
-                let balance = feeDetails[0][0].fee_fixed - feeDetails[0][0].paidAmount;
+                let balance = feeDetails[0].fee_fixed - feeDetails[0].paidAmount;
 
                 let uquery = ``;
 
                 if (balance == 0) {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}',fee_clear=1 WHERE id='${student_feeDetails.id}'`;
                 } else {
-                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0][0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
+                    uquery = `UPDATE fee_details SET paid_fee='${feeDetails[0].paidAmount}',bal='${balance}' WHERE id='${student_feeDetails.id}'`;
                 }
 
-                let update = await promisePool.query(uquery);
-                if (update[0].affectedRows) {
+                let update = await runQuery(uquery);
+                if (update.affectedRows) {
                     res.send(["Record Added", "success"]);
                 } else {
                     res.send(["Record Added But Balance Fee and Paid Fee Not Updated", "warning"]);
@@ -2733,8 +2805,8 @@ app.post('/payfees', async (req, res) => {
 
 app.post('/getfeetransactions', async (req, res) => {
     let data = req.body;
-    let feeDetails = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_id='${data.feeId}'  AND fee_type NOT IN('0','-1') `);
-    res.send(feeDetails[0]);
+    let feeDetails = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_id='${data.feeId}'  AND fee_type NOT IN('0','-1') `);
+    res.send(feeDetails);
 });
 
 app.post('/getconsolidatefeesdetails', async (req, res) => {
@@ -2757,12 +2829,12 @@ app.post('/getconsolidatefeesdetails', async (req, res) => {
         </tr>
     </thead>
     <tbody>`;
-        if (transaction[0].length == 0) {
+        if (transaction.length == 0) {
             table += `<tr><td style="text-align:center" colspan="9">No Data Found</td></tr>`
         } else {
 
-            for (let j = 0; j < transaction[0].length; j++) {
-                const element = transaction[0][j];
+            for (let j = 0; j < transaction.length; j++) {
+                const element = transaction[j];
                 totalPaidAmt += parseFloat(element.paid_amt);
                 bal = element.bal;
                 table += `
@@ -2791,23 +2863,23 @@ app.post('/getconsolidatefeesdetails', async (req, res) => {
         return table;
     }
 
-    let studentDetails = await promisePool.query(`SELECT student_id,usn,name,(SELECT iname FROM college WHERE id=s.cid) AS iname,(SELECT type FROM student_details WHERE student_id=s.student_id) AS type,(SELECT academic_year FROM student_details WHERE student_id=s.student_id) AS ad_year FROM student_info s WHERE cid='${data.cid}' AND (usn='${data.usn}' OR student_id='${data.usn}')`);
-    let feeDetails = await promisePool.query(`SELECT * FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1)`);
-    let year1Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=1  AND fee_type NOT IN('0','-1') `);
-    let year2Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=2  AND fee_type NOT IN('0','-1') `);
-    let year3Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
-    let year4Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=4  AND fee_type NOT IN('0','-1') `);
-    let year5Transaction = await promisePool.query(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
+    let studentDetails = await runQuery(`SELECT student_id,usn,name,(SELECT iname FROM college WHERE id=s.cid) AS iname,(SELECT type FROM student_details WHERE student_id=s.student_id) AS type,(SELECT academic_year FROM student_details WHERE student_id=s.student_id) AS ad_year FROM student_info s WHERE cid='${data.cid}' AND (usn='${data.usn}' OR student_id='${data.usn}')`);
+    let feeDetails = await runQuery(`SELECT * FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1)`);
+    let year1Transaction = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=1  AND fee_type NOT IN('0','-1') `);
+    let year2Transaction = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=2  AND fee_type NOT IN('0','-1') `);
+    let year3Transaction = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
+    let year4Transaction = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=4  AND fee_type NOT IN('0','-1') `);
+    let year5Transaction = await runQuery(`SELECT student_id,trans_id,usn,paid_date,paid_amt,bal,scr_no,year,(SELECT name FROM fee_type WHERE id=f.fee_type) AS fee_type FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND year=3  AND fee_type NOT IN('0','-1') `);
 
     let body = `<div class="card font-weight-bold text-uppercase">
     <div class="card-body">
-    <h2 style="text-align: center;" class="mb-3">${studentDetails[0][0].iname}</h2>
+    <h2 style="text-align: center;" class="mb-3">${studentDetails[0].iname}</h2>
     <div class="row">
-            <div class="col-sm-3 font-weight-bold">Name: ${studentDetails[0][0].name}</div>
-            <div class="col-sm-2 font-weight-bold">USN: ${studentDetails[0][0].usn}</div>
-            <div class="col-sm-3 font-weight-bold">Student Id: ${studentDetails[0][0].student_id}</div>
-            <div class="col-sm-2 font-weight-bold">Admission Year: ${studentDetails[0][0].ad_year} </div>
-            <div class="col-sm-2 font-weight-bold">Student Type: ${studentDetails[0][0].type}</div>
+            <div class="col-sm-3 font-weight-bold">Name: ${studentDetails[0].name}</div>
+            <div class="col-sm-2 font-weight-bold">USN: ${studentDetails[0].usn}</div>
+            <div class="col-sm-3 font-weight-bold">Student Id: ${studentDetails[0].student_id}</div>
+            <div class="col-sm-2 font-weight-bold">Admission Year: ${studentDetails[0].ad_year} </div>
+            <div class="col-sm-2 font-weight-bold">Student Type: ${studentDetails[0].type}</div>
 
             <h4 class="mt-3" style="text-align:center;">Fee Fixation From 1<sup>st</sup> to ${data.cid == 1 ? '4<sup>th</sup>' : '5<sup>th</sup>'} Year</h4>
             <table class="table table-bordered table-striped" style="border-collapse:collapse;width:100%;" border="1">
@@ -2843,8 +2915,8 @@ app.post('/getconsolidatefeesdetails', async (req, res) => {
     let gFeeFixed = 0;
     let gFeePaid = 0;
     let gBalance = 0;
-    for (let i = 0; i < feeDetails[0].length; i++) {
-        const element = feeDetails[0][i];
+    for (let i = 0; i < feeDetails.length; i++) {
+        const element = feeDetails[i];
         let universityFeePaid = 0;
         let instituteFeePaid = 0;
         let tuitionFeePaid = 0;
@@ -2926,13 +2998,13 @@ app.post('/getconsolidatefeesdetails', async (req, res) => {
 
 app.post('/getfeetranscationsfordelete', async (req, res) => {
     let data = req.body;
-    let transactions = await promisePool.query(`SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}' AND fee_type NOT IN('0','-1') GROUP BY trans_id`);
-    res.send(transactions[0]);
+    let transactions = await runQuery(`SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}' AND fee_type NOT IN('0','-1') GROUP BY trans_id`);
+    res.send(transactions);
 });
 
 app.post('/deletestudenttranscationstatus', async (req, res) => {
     let data = req.body;
-    let transactions = await promisePool.query(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,SUM(paid_amt) AS paid_amt,usn,trans_id,paid_date,scr_no,admin1,admin2 FROM fee_transactions f WHERE cid='${data.cid}' AND delete_sts=1 GROUP BY trans_id;`);
+    let transactions = await runQuery(`SELECT (SELECT name FROM student_info WHERE student_id=f.student_id) AS name,SUM(paid_amt) AS paid_amt,usn,trans_id,paid_date,scr_no,admin1,admin2 FROM fee_transactions f WHERE cid='${data.cid}' AND delete_sts=1 GROUP BY trans_id;`);
     let table = `<table class="table table-bordered">
     <thead class="thead-dark">
     <tr>
@@ -2952,8 +3024,8 @@ app.post('/deletestudenttranscationstatus', async (req, res) => {
     table += `</tr>
     </thead>
     <tbody>`;
-    for (let i = 0; i < transactions[0].length; i++) {
-        const element = transactions[0][i];
+    for (let i = 0; i < transactions.length; i++) {
+        const element = transactions[i];
         let admin1Status = ``;
         let admin2Status = ``;
 
@@ -2996,32 +3068,31 @@ app.post('/deletestudenttranscationstatus', async (req, res) => {
 
 app.post('/adddeletetranscation', async (req, res) => {
     let data = req.body;
-    let transactions = await promisePool.query(`SELECT trans_id FROM fee_transactions f WHERE id='${data.id}'`);
-    let update = await promisePool.query(`UPDATE fee_transactions SET delete_sts=1  WHERE trans_id='${transactions[0][0].trans_id}'`);
-    if (update[0].affectedRows > 0) {
+    let transactions = await runQuery(`SELECT trans_id FROM fee_transactions f WHERE id='${data.id}'`);
+    let update = await runQuery(`UPDATE fee_transactions SET delete_sts=1  WHERE trans_id='${transactions[0].trans_id}'`);
+    if (update.affectedRows > 0) {
         res.send(["Record Submitted For Approval", "success"]);
     } else {
         res.send(["Record Not Submitted", "error"]);
     }
-
 });
 
 app.post('/approvedeletetransaction', async (req, res) => {
     let data = req.body;
-    let approvalDetails = await promisePool.query(`SELECT admin,(SELECT name FROM admin WHERE id=f.fid) AS name FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='editTransction'`);
+    let approvalDetails = await runQuery(`SELECT admin,(SELECT name FROM admin WHERE id=f.fid) AS name FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='editTransction'`);
 
     let query = '';
     if (data.cid == 1) {
-        if (approvalDetails[0][0].admin == 1) {
+        if (approvalDetails[0].admin == 1) {
             query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1='' AND admin1!='rejected' GROUP BY trans_id`;
-        } else if (approvalDetails[0][0].admin == 2) {
+        } else if (approvalDetails[0].admin == 2) {
             query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1!='' AND admin1!='rejected' AND admin2='' AND admin2!='rejected' GROUP BY trans_id`;
         }
     } else if (data.cid == 6) {
         query = `SELECT DISTINCT(trans_id),SUM(paid_amt) AS pait_amt,bal,paid_date,scr_no,id,usn,student_id,delete_sts,id,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,admin1,admin2 FROM fee_transactions f WHERE delete_sts=1 AND fee_type NOT IN('0','-1') AND admin1='' AND admin1!='rejected' GROUP BY trans_id`;
     }
-    let transactions = await promisePool.query(query);
-    res.send([transactions[0], approvalDetails[0][0]]);
+    let transactions = await runQuery(query);
+    res.send([transactions, approvalDetails[0]]);
 });
 
 app.post('/deletetranscationupdate', async (req, res) => {
@@ -3031,8 +3102,8 @@ app.post('/deletetranscationupdate', async (req, res) => {
     if (data.cid == 1) {
         if (data.admin == 1) {
             query = `UPDATE fee_transactions SET admin1='${data.sign}' WHERE trans_id='${data.trans_id}'`
-            let transactions = await promisePool.query(query);
-            if (transactions[0].affectedRows > 0) {
+            let transactions = await runQuery(query);
+            if (transactions.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
@@ -3042,33 +3113,33 @@ app.post('/deletetranscationupdate', async (req, res) => {
                 res.send(["Not Approved", "error"]);
             }
         } else if (data.admin == 2) {
-            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE trans_id='${data.trans_id}'`);
-            if (transaction2[0].affectedRows > 0) {
+            let transaction2 = await runQuery(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE trans_id='${data.trans_id}'`);
+            if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
-                    let trDetails = await promisePool.query(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
-                    let feeDetails = await promisePool.query(`SELECT old_bal,paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0][0].fee_id}'`);
+                    let trDetails = await runQuery(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
+                    let feeDetails = await runQuery(`SELECT old_bal,paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0].fee_id}'`);
                     if (data.cid == 1) {
-                        feeFixed = feeDetails[0][0].old_bal + feeDetails[0][0].uni_fee + feeDetails[0][0].inst_fee + feeDetails[0][0].tut_fee;
+                        feeFixed = feeDetails[0].old_bal + feeDetails[0].uni_fee + feeDetails[0].inst_fee + feeDetails[0].tut_fee;
                     } else {
-                        feeFixed = feeDetails[0][0].uni_fee + feeDetails[0][0].tut_fee + feeDetails[0][0].nasa_fee + feeDetails[0][0].libry_fee;
+                        feeFixed = feeDetails[0].uni_fee + feeDetails[0].tut_fee + feeDetails[0].nasa_fee + feeDetails[0].libry_fee;
                     }
-                    let paid_amt = feeDetails[0][0].paid_fee - trDetails[0][0].pait_amt;
-                    let bal_amt = feeDetails[0][0].bal + trDetails[0][0].pait_amt;
-                    let transaction2 = await promisePool.query(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0][0].id}'`);
-                    if (transaction2[0].affectedRows > 0) {
-                        let transaction3 = await promisePool.query(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
-                        if (transaction3[0].affectedRows > 0) {
-                            let getAllTransactions = await promisePool.query(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0][0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
-                            if (getAllTransactions[0].length > 0) {
+                    let paid_amt = feeDetails[0].paid_fee - trDetails[0].pait_amt;
+                    let bal_amt = feeDetails[0].bal + trDetails[0].pait_amt;
+                    let transaction2 = await runQuery(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0].id}'`);
+                    if (transaction2.affectedRows > 0) {
+                        let transaction3 = await runQuery(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
+                        if (transaction3.affectedRows > 0) {
+                            let getAllTransactions = await runQuery(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
+                            if (getAllTransactions.length > 0) {
                                 let insert = 0;
-                                for (let i = 0; i < getAllTransactions[0].length; i++) {
-                                    const element = getAllTransactions[0][i];
+                                for (let i = 0; i < getAllTransactions.length; i++) {
+                                    const element = getAllTransactions[i];
                                     let bal = feeFixed - element.paid_amt;
                                     feeFixed -= element.paid_amt;
-                                    let transaction4 = await promisePool.query(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
-                                    if (transaction4[0].affectedRows > 0) {
+                                    let transaction4 = await runQuery(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
+                                    if (transaction4.affectedRows > 0) {
                                         insert++;
                                     }
                                 }
@@ -3101,32 +3172,32 @@ app.post('/deletetranscationupdate', async (req, res) => {
         }
     } else if (data.cid == 6) {
         if (data.admin == 1) {
-            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE trans_id='${data.trans_id}'`);
-            if (transaction2[0].affectedRows > 0) {
+            let transaction2 = await runQuery(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE trans_id='${data.trans_id}'`);
+            if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
-                    let trDetails = await promisePool.query(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
-                    let feeDetails = await promisePool.query(`SELECT paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0][0].fee_id}'`);
+                    let trDetails = await runQuery(`SELECT SUM(paid_amt) AS pait_amt,fee_id FROM fee_transactions f WHERE trans_id='${data.trans_id}'`);
+                    let feeDetails = await runQuery(`SELECT paid_fee,bal,id,uni_fee,tut_fee,inst_fee,othr_fee,nasa_fee,libry_fee FROM fee_details WHERE id='${trDetails[0].fee_id}'`);
                     if (data.cid == 1) {
-                        feeFixed = feeDetails[0][0].old_bal + feeDetails[0][0].uni_fee + feeDetails[0][0].inst_fee + feeDetails[0][0].tut_fee;
+                        feeFixed = feeDetails[0].old_bal + feeDetails[0].uni_fee + feeDetails[0].inst_fee + feeDetails[0].tut_fee;
                     } else {
-                        feeFixed = feeDetails[0][0].uni_fee + feeDetails[0][0].tut_fee + feeDetails[0][0].nasa_fee + feeDetails[0][0].libry_fee;
+                        feeFixed = feeDetails[0].uni_fee + feeDetails[0].tut_fee + feeDetails[0].nasa_fee + feeDetails[0].libry_fee;
                     }
-                    let paid_amt = feeDetails[0][0].paid_fee - trDetails[0][0].pait_amt;
-                    let bal_amt = feeDetails[0][0].bal + trDetails[0][0].pait_amt;
-                    let transaction2 = await promisePool.query(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0][0].id}'`);
-                    if (transaction2[0].affectedRows > 0) {
-                        let transaction3 = await promisePool.query(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
-                        if (transaction3[0].affectedRows > 0) {
-                            let getAllTransactions = await promisePool.query(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0][0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
+                    let paid_amt = feeDetails[0].paid_fee - trDetails[0].pait_amt;
+                    let bal_amt = feeDetails[0].bal + trDetails[0].pait_amt;
+                    let transaction2 = await runQuery(`UPDATE fee_details SET paid_fee='${paid_amt}',bal='${bal_amt}' WHERE id='${feeDetails[0].id}'`);
+                    if (transaction2.affectedRows > 0) {
+                        let transaction3 = await runQuery(`DELETE FROM  fee_transactions WHERE trans_id='${data.trans_id}'`);
+                        if (transaction3.affectedRows > 0) {
+                            let getAllTransactions = await runQuery(`SELECT paid_amt,id  FROM fee_transactions f WHERE fee_id='${feeDetails[0].id}' AND fee_type NOT IN('0','-1') ORDER BY id ASC`);
                             let insert = 0;
                             for (let i = 0; i < getAllTransactions[0].length; i++) {
                                 const element = getAllTransactions[0][i];
                                 feeFixed -= paid_amt;
                                 bal = feeFixed - paid_amt;
-                                let transaction4 = await promisePool.query(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
-                                if (transaction4[0].affectedRows > 0) {
+                                let transaction4 = await runQuery(`UPDATE  fee_transactions set bal='${bal}' WHERE id='${element.id}'`);
+                                if (transaction4.affectedRows > 0) {
                                     insert++;
                                 }
                             }
@@ -3163,8 +3234,8 @@ app.post('/getfeedetailsfordelete', async (req, res) => {
     } else {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
-    let transactions = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,year,acd_year,paid_fee,id FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}'`);
-    res.send(transactions[0]);
+    let transactions = await runQuery(`SELECT ${feeHeads} AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,year,acd_year,paid_fee,id FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}'`);
+    res.send(transactions);
 });
 
 app.post('/addfeedetailsdeletetranscation', async (req, res) => {
@@ -3178,20 +3249,20 @@ app.post('/addfeedetailsdeletetranscation', async (req, res) => {
     }
 
     if (data.paidFee == 0) {
-        let deletes = await promisePool.query(`DELETE FROM fee_details WHERE id='${data.id}'`);
-        if (deletes[0].affectedRows > 0) {
+        let deletes = await runQuery(`DELETE FROM fee_details WHERE id='${data.id}'`);
+        if (deletes.affectedRows > 0) {
             res.send(["Record Deleted", "success"]);
         } else {
             res.send(["Record Not Added", "error"]);
         }
     } else {
-        let feeDetails = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,(SELECT sum(paid_amt)  FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,student_id,usn,cid,did,year,acd_year,id FROM fee_details f WHERE id='${data.id}'`);
-        let details = feeDetails[0][0];
+        let feeDetails = await runQuery(`SELECT ${feeHeads} AS fee_fixed,(SELECT sum(paid_amt)  FROM fee_transactions WHERE cid=f.cid AND fee_id=f.id AND fee_type NOT IN('0','-1')) AS paid_fee,student_id,usn,cid,did,year,acd_year,id FROM fee_details f WHERE id='${data.id}'`);
+        let details = feeDetails[0];
         //in delete student data storing fixation in balance
         let query = `INSERT INTO fee_transactions(trans_id, fee_id, student_id, usn, cid, did, year, acd_year, fee_type, scr_no, paid_date, paid_amt,remark, bal, uid, delete_sts) 
         VALUES ('${await getTransactionId(details.cid, details.did)}','${details.id}','${details.student_id}','${details.usn}','${details.cid}','${details.did}','${details.year}','${details.acd_year}','-1','Delete Student','${formatDate('db', Date())}','${details.paid_fee}','${data.remarks}','${details.fee_fixed}','${data.uid}','2')`;
-        let isInsert = await promisePool.query(query);
-        if (isInsert[0].insertId > 0) {
+        let isInsert = await runQuery(query);
+        if (isInsert.insertId > 0) {
             res.send(["Record Submitted For Approval", "success"]);
         } else {
             res.send(["Record Not Added", "error"]);
@@ -3202,9 +3273,9 @@ app.post('/addfeedetailsdeletetranscation', async (req, res) => {
 app.post('/getstudentdeletestatus', async (req, res) => {
     let data = req.body;
     let iname = '';
-    let deleteStudentDetailsTransactions = await promisePool.query(`SELECT student_id,usn,year,acd_year,bal,paid_amt,remark,admin1,admin2,(SELECT iname FROM college WHERE id=f.cid ) AS iname,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE cid='${data.cid}' AND delete_sts=2`)
-    if (deleteStudentDetailsTransactions[0].length > 0) {
-        iname = deleteStudentDetailsTransactions[0][0].iname;
+    let deleteStudentDetailsTransactions = await runQuery(`SELECT student_id,usn,year,acd_year,bal,paid_amt,remark,admin1,admin2,(SELECT iname FROM college WHERE id=f.cid ) AS iname,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE cid='${data.cid}' AND delete_sts=2`)
+    if (deleteStudentDetailsTransactions.length > 0) {
+        iname = deleteStudentDetailsTransactions[0].iname;
     }
     let table = `<h2 class="mt-2 mb-4">${iname}</h2>
     <table class="table table-bordered dataTable">
@@ -3225,8 +3296,8 @@ app.post('/getstudentdeletestatus', async (req, res) => {
         table += '<th>HOD</th>';
     }
     table += `</tr></thead><tbody>`;
-    for (let i = 0; i < deleteStudentDetailsTransactions[0].length; i++) {
-        const element = deleteStudentDetailsTransactions[0][i];
+    for (let i = 0; i < deleteStudentDetailsTransactions.length; i++) {
+        const element = deleteStudentDetailsTransactions[i];
         let admin1 = '';
         let admin2 = '';
 
@@ -3270,21 +3341,21 @@ app.post('/getstudentdeletestatus', async (req, res) => {
 
 app.post('/approvedeletestudentfeedetails', async (req, res) => {
     let data = req.body;
-    let approvalDetails = await promisePool.query(`SELECT admin,(SELECT iname FROM college WHERE id=f.cid) AS iname FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='feeFixationChange'`);
+    let approvalDetails = await runQuery(`SELECT admin,(SELECT iname FROM college WHERE id=f.cid) AS iname FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='feeFixationChange'`);
 
     let query = '';
     if (data.cid == 1) {
-        if (approvalDetails[0][0].admin == 1) {
+        if (approvalDetails[0].admin == 1) {
             query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1='' AND admin1!='rejected'`;
-        } else if (approvalDetails[0][0].admin == 2) {
+        } else if (approvalDetails[0].admin == 2) {
             query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1!='' AND admin1!='rejected' AND admin2='' AND admin2!='rejected'`;
         }
     } else if (data.cid == 6) {
         query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE delete_sts=2 AND admin1='' AND admin1!='rejected'`;
     }
 
-    let transactions = await promisePool.query(query);
-    res.send([transactions[0], approvalDetails[0][0]]);
+    let transactions = await runQuery(query);
+    res.send([transactions, approvalDetails[0]]);
 });
 
 app.post('/deletefeedetailsupdate', async (req, res) => {
@@ -3293,8 +3364,8 @@ app.post('/deletefeedetailsupdate', async (req, res) => {
     if (data.cid == 1) {
         if (data.admin == 1) {
             query = `UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`
-            let transactions = await promisePool.query(query);
-            if (transactions[0].affectedRows > 0) {
+            let transactions = await runQuery(query);
+            if (transactions.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
@@ -3304,16 +3375,17 @@ app.post('/deletefeedetailsupdate', async (req, res) => {
                 res.send(["Not Approved", "error"]);
             }
         } else if (data.admin == 2) {
-            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
-            let deleteTrDtls = await promisePool.query(`SELECT fee_id FROM fee_transactions  WHERE id='${data.id}'`);
-            if (transaction2[0].affectedRows > 0) {
+            let transaction2 = await runQuery(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
+            let deleteTrDtls = await runQuery(`SELECT fee_id FROM fee_transactions  WHERE id='${data.id}'`);
+            
+            if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
-                    let deleteTrns = await promisePool.query(`DELETE FROM fee_transactions  WHERE fee_id='${deleteTrDtls[0][0].fee_id}' AND delete_sts!=2`);
-                    if (deleteTrns[0].affectedRows > 0) {
-                        let deleteFeeDtls = await promisePool.query(`DELETE FROM fee_details  WHERE id='${deleteTrDtls[0][0].fee_id}'`);
-                        if (deleteFeeDtls[0].affectedRows > 0) {
+                    let deleteTrns = await runQuery(`DELETE FROM fee_transactions  WHERE fee_id='${deleteTrDtls[0].fee_id}' AND delete_sts!=2`);
+                    if (deleteTrns.affectedRows > 0) {
+                        let deleteFeeDtls = await runQuery(`DELETE FROM fee_details  WHERE id='${deleteTrDtls[0].fee_id}'`);
+                        if (deleteFeeDtls.affectedRows > 0) {
                             res.send(["Approved", "success"]);
                         } else {
                             res.send(["Transction Approved and fee transaction Deleted but fee details not deleted", "error"])
@@ -3365,18 +3437,18 @@ app.post('/getfeedetailsforeditfixation', async (req, res) => {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
         heads = `uni_fee,tut_fee,nasa_fee,libry_fee`;
     }
-    let transactions = await promisePool.query(`SELECT ${feeHeads} AS fee_fixed,${heads},(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,year,acd_year,paid_fee,id,usn,student_id FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}'`);
-    res.send(transactions[0][0]);
+    let transactions = await runQuery(`SELECT ${feeHeads} AS fee_fixed,${heads},(SELECT name FROM student_info WHERE student_id=f.student_id limit 1) AS name,year,acd_year,paid_fee,id,usn,student_id FROM fee_details f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND acd_year='${data.academicYear}'`);
+    res.send(transactions[0]);
 });
 
 app.post('/addfeedetailsedittranscation', async (req, res) => {
     let data = req.body;
-    let feeDetails = await promisePool.query(`SELECT id,student_id,usn,cid,did,year,acd_year,paid_fee FROM fee_details WHERE id='${data.id}'`);
+    let feeDetails = await runQuery(`SELECT id,student_id,usn,cid,did,year,acd_year,paid_fee FROM fee_details WHERE id='${data.id}'`);
     let paidAmount = `${data.uni_fee}|${data.tut_fee}`;
     let totalFee = parseInt(data.uni_fee) + parseInt(data.tut_fee);
-    let query = `INSERT INTO fee_transactions(trans_id,fee_id,student_id,usn,cid,did,year,acd_year,fee_type,scr_no,paid_date,paid_amt,remark,bal,uid) VALUES ('${await getTransactionId(feeDetails[0][0].cid, feeDetails[0][0].did)}','${feeDetails[0][0].id}','${feeDetails[0][0].student_id}','${feeDetails[0][0].usn}','${feeDetails[0][0].cid}','${feeDetails[0][0].did}','${feeDetails[0][0].year}','${feeDetails[0][0].acd_year}','0','Fee Changed','${formatDate('db', Date())}','${paidAmount}','${data.remarks}','${totalFee}','${data.uid}')`;
-    let isInsert = await promisePool.query(query);
-    if (isInsert[0].insertId > 0) {
+    let query = `INSERT INTO fee_transactions(trans_id,fee_id,student_id,usn,cid,did,year,acd_year,fee_type,scr_no,paid_date,paid_amt,remark,bal,uid) VALUES ('${await getTransactionId(feeDetails[0].cid, feeDetails[0].did)}','${feeDetails[0].id}','${feeDetails[0].student_id}','${feeDetails[0].usn}','${feeDetails[0].cid}','${feeDetails[0].did}','${feeDetails[0].year}','${feeDetails[0].acd_year}','0','Fee Changed','${formatDate('db', Date())}','${paidAmount}','${data.remarks}','${totalFee}','${data.uid}')`;
+    let isInsert = await runQuery(query);
+    if (isInsert.insertId > 0) {
         res.send(["Record Submitted For Approval", "success"]);
     } else {
         res.send(["Record Not Added", "error"]);
@@ -3392,9 +3464,9 @@ app.post('/getstudenteditfeestatus', async (req, res) => {
     } else {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
-    let deleteStudentDetailsTransactions = await promisePool.query(`SELECT student_id,usn,year,acd_year,bal,remark,admin1,admin2,(SELECT iname FROM college WHERE id=f.cid ) AS iname,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name,(SELECT ${feeHeads} FROM fee_details WHERE id=f.fee_id) AS fee_fixed FROM fee_transactions f WHERE cid='${data.cid}' AND fee_type=0`);
-    if (deleteStudentDetailsTransactions[0].length > 0) {
-        iname = deleteStudentDetailsTransactions[0][0].iname;
+    let deleteStudentDetailsTransactions = await runQuery(`SELECT student_id,usn,year,acd_year,bal,remark,admin1,admin2,(SELECT iname FROM college WHERE id=f.cid ) AS iname,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name,(SELECT ${feeHeads} FROM fee_details WHERE id=f.fee_id) AS fee_fixed FROM fee_transactions f WHERE cid='${data.cid}' AND fee_type=0`);
+    if (deleteStudentDetailsTransactions.length > 0) {
+        iname = deleteStudentDetailsTransactions[0].iname;
     }
     let table = `<h2 class="mt-2 mb-4">${iname}</h2>
     <table class="table table-bordered dataTable">
@@ -3414,8 +3486,8 @@ app.post('/getstudenteditfeestatus', async (req, res) => {
         table += '<th>HOD</th>';
     }
     table += `</tr></thead><tbody>`;
-    for (let i = 0; i < deleteStudentDetailsTransactions[0].length; i++) {
-        const element = deleteStudentDetailsTransactions[0][i];
+    for (let i = 0; i < deleteStudentDetailsTransactions.length; i++) {
+        const element = deleteStudentDetailsTransactions[i];
         let admin1 = '';
         let admin2 = '';
 
@@ -3466,21 +3538,21 @@ app.post('/approveeditstudentfeedetails', async (req, res) => {
         feeHeads = 'SUM(uni_fee+tut_fee+nasa_fee+libry_fee)';
     }
 
-    let approvalDetails = await promisePool.query(`SELECT admin,(SELECT iname FROM college WHERE id=f.cid) AS iname FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='feeFixationChange'`);
+    let approvalDetails = await runQuery(`SELECT admin,(SELECT iname FROM college WHERE id=f.cid) AS iname FROM fee_approvals f WHERE cid='${data.cid}' AND fid='${data.fid}' AND type='feeFixationChange'`);
 
     let query = '';
     if (data.cid == 1) {
-        if (approvalDetails[0][0].admin == 1) {
+        if (approvalDetails[0].admin == 1) {
             query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT ${feeHeads} FROM fee_details WHERE id=f.fee_id) AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_type=0 AND admin1='' AND admin1!='rejected'`;
-        } else if (approvalDetails[0][0].admin == 2) {
+        } else if (approvalDetails[0].admin == 2) {
             query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,admin1,(SELECT ${feeHeads} FROM fee_details WHERE id=f.fee_id) AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_type=0 AND admin1!='' AND admin1!='rejected' AND admin2='' AND admin2!='rejected'`;
         }
     } else if (data.cid == 6) {
         query = `SELECT id,usn,year,acd_year,bal,paid_amt,remark,(SELECT ${feeHeads} FROM fee_details WHERE id=f.fee_id) AS fee_fixed,(SELECT name FROM student_info WHERE student_id=f.student_id LIMIT 1) AS name FROM fee_transactions f WHERE fee_type=0 AND admin1='' AND admin1!='rejected'`;
     }
 
-    let transactions = await promisePool.query(query);
-    res.send([transactions[0], approvalDetails[0][0]]);
+    let transactions = await runQuery(query);
+    res.send([transactions, approvalDetails[0]]);
 });
 
 app.post('/editfeedetailsupdate', async (req, res) => {
@@ -3495,8 +3567,8 @@ app.post('/editfeedetailsupdate', async (req, res) => {
     if (data.cid == 1) {
         if (data.admin == 1) {
             query = `UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`
-            let transactions = await promisePool.query(query);
-            if (transactions[0].affectedRows > 0) {
+            let transactions = await runQuery(query);
+            if (transactions.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
@@ -3559,46 +3631,46 @@ app.post('/editfeedetailsupdate', async (req, res) => {
         }
     } else if (data.cid == 6) {
         if (data.admin == 1) {
-            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`);
+            let transaction2 = await runQuery(`UPDATE fee_transactions SET admin1='${data.sign}' WHERE id='${data.id}'`);
 
-            if (transaction2[0].affectedRows > 0) {
+            if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
-                    let oldFeeDetails = await promisePool.query(`SELECT * FROM fee_details WHERE id=(SELECT fee_id FROM fee_transactions WHERE id='${data.id}')`);
-                    let changeFeeDetails = await promisePool.query(`SELECT * FROM fee_transactions WHERE id='${data.id}'`);
+                    let oldFeeDetails = await runQuery(`SELECT * FROM fee_details WHERE id=(SELECT fee_id FROM fee_transactions WHERE id='${data.id}')`);
+                    let changeFeeDetails = await runQuery(`SELECT * FROM fee_transactions WHERE id='${data.id}'`);
                     let old_fee_fixed = '';
 
                     if (data.cid == 1) {
-                        old_fee_fixed = oldFeeDetails[0][0].old_bal + oldFeeDetails[0][0].uni_fee + oldFeeDetails[0][0].inst_fee + oldFeeDetails[0][0].tut_fee;
+                        old_fee_fixed = oldFeeDetails[0].old_bal + oldFeeDetails[0].uni_fee + oldFeeDetails[0].inst_fee + oldFeeDetails[0].tut_fee;
                     } else {
-                        old_fee_fixed = oldFeeDetails[0][0].uni_fee + oldFeeDetails[0][0].tut_fee + oldFeeDetails[0][0].nasa_fee + oldFeeDetails[0][0].libry_fee;
+                        old_fee_fixed = oldFeeDetails[0].uni_fee + oldFeeDetails[0].tut_fee + oldFeeDetails[0].nasa_fee + oldFeeDetails[0].libry_fee;
                     }
 
-                    let headWiseChangedFeeAmount = changeFeeDetails[0][0]['paid_amt'].split("|");
+                    let headWiseChangedFeeAmount = changeFeeDetails[0]['paid_amt'].split("|");
                     let uni_fee = parseFloat(headWiseChangedFeeAmount[0]);
                     let tut_fee = parseFloat(headWiseChangedFeeAmount[1]);
                     let new_fee_fixed = uni_fee + tut_fee;
                     let balance = new_fee_fixed;
                     let totalPaidAmont = 0;
-                    let oldTransactions = await promisePool.query(`SELECT id,paid_amt,bal,fee_id FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND fee_id = '${oldFeeDetails[0][0].id}'  AND fee_type NOT IN('0','-1') `);
+                    let oldTransactions = await runQuery(`SELECT id,paid_amt,bal,fee_id FROM fee_transactions f WHERE student_id=(SELECT student_id FROM student_info WHERE usn='${data.usn}' OR student_id='${data.usn}' LIMIT 1) AND fee_id = '${oldFeeDetails[0].id}'  AND fee_type NOT IN('0','-1') `);
                     let trUpdate = 0;
 
-                    for (let i = 0; i < oldTransactions[0].length; i++) {
-                        const element = oldTransactions[0][i];
+                    for (let i = 0; i < oldTransactions.length; i++) {
+                        const element = oldTransactions[i];
                         balance -= element.paid_amt;
                         totalPaidAmont += element.paid_amt;
-                        let updateTr1 = await promisePool.query(`UPDATE fee_transactions SET old_bal='${element.bal}',bal='${balance}' remark='old fee fixed ${old_fee_fixed} AND new fee fixed ${new_fee_fixed}' WHERE id='${element.id}'`);
-                        if (updateTr1[0].affectedRows > 0) {
-                            let updateTr2 = await promisePool.query(`UPDATE fee_transactions SET paid_fee='${totalPaidAmont}',bal='${balance}'  WHERE id='${element.fee_id}'`)
-                            if (updateTr2[0].affectedRows > 0) {
+                        let updateTr1 = await runQuery(`UPDATE fee_transactions SET old_bal='${element.bal}',bal='${balance}' remark='old fee fixed ${old_fee_fixed} AND new fee fixed ${new_fee_fixed}' WHERE id='${element.id}'`);
+                        if (updateTr1.affectedRows > 0) {
+                            let updateTr2 = await runQuery(`UPDATE fee_transactions SET paid_fee='${totalPaidAmont}',bal='${balance}'  WHERE id='${element.fee_id}'`)
+                            if (updateTr2.affectedRows > 0) {
                                 trUpdate++;
                             }
                         }
                     }
                     if (trUpdate > 0) {
-                        let updateTr3 = await promisePool.query(`UPDATE fee_transactions SET uni_fee='${uni_fee}',tut_fee='${tut_fee}'  WHERE id='${oldFeeDetails[0][0].id}'`);
-                        if (updateTr3[0].affectedRows > 0) {
+                        let updateTr3 = await runQuery(`UPDATE fee_transactions SET uni_fee='${uni_fee}',tut_fee='${tut_fee}'  WHERE id='${oldFeeDetails[0].id}'`);
+                        if (updateTr3.affectedRows > 0) {
                             res.send(["Approved", "success"]);
                         } else {
                             res.send(["Transction Approved and old transaction balance updated but fee fixation not changed", "error"])
@@ -3638,17 +3710,17 @@ app.post('/getstudentfeelist', async (req, res) => {
 
     // console.log(query)
 
-    let studentList = await promisePool.query(query);
-    res.send(studentList[0]);
+    let studentList = await runQuery(query);
+    res.send(studentList);
 });
 
 app.post('/getiamarksentry', async (req, res) => {
     let data = req.body;
-    let rows = await promisePool.query(`SELECT scode,sem,dv,cid,did,dv,academic_year,fid FROM subject s WHERE id='${data.id}'`);
-    let subjectDetails = rows[0][0];
-    let list = await promisePool.query(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`);
-    let qpDetails = await promisePool.query(`SELECT qno,marks,(SELECT cos FROM nba_co WHERE id=n.co_id) as cos FROM nba_question n WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND internal='${data.internal}' AND qno NOT IN('part-a','part-B','or')`);
-    res.send([list[0], qpDetails[0]]);
+    let rows = await runQuery(`SELECT scode,sem,dv,cid,did,dv,academic_year,fid FROM subject s WHERE id='${data.id}'`);
+    let subjectDetails = rows[0];
+    let list = await runQuery(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`);
+    let qpDetails = await runQuery(`SELECT qno,marks,(SELECT cos FROM nba_co WHERE id=n.co_id) as cos FROM nba_question n WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND internal='${data.internal}' AND qno NOT IN('part-a','part-B','or')`);
+    res.send([list, qpDetails]);
 });
 
 app.post('/addiamarks', async (req, res) => {

@@ -100,15 +100,17 @@ export default function PsoAdd(props) {
     const checkDelete = (i,id)=>{
         if (i > 1) {
             if(id!=''){
-                axios.delete(`${props.baseURL}/deletepso/${id}`).then((response) => {
-                    if (response.data[0] > 0) {
-                        swal("PSO Deleted", "", "success");
-                        navigate("/addpso");
-                    } else {
-                        swal("PSO Not Deleted", "", "error");
-                        navigate("/addpso");
-                    }
-                });
+                if(window.confirm("Are you sure you want to delete")){
+                    axios.delete(`${props.baseURL}/deletepso/${id}`).then((response) => {
+                        if (response.data[0] > 0) {
+                            swal("PSO Deleted", "", "success");
+                            navigate("/addpso");
+                        } else {
+                            swal("PSO Not Deleted", "", "error");
+                            navigate("/addpso");
+                        }
+                    });
+                }
             }else{
                 removeFeild(i);
             }

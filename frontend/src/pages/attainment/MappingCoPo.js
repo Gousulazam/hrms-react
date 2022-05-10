@@ -15,7 +15,7 @@ export default function MappingCoPo(props) {
         await axios.post(`${props.baseURL}/getsubjectdetailbyid`, {
             id: state.subject
         }).then((response) => {
-            setSubjectDetails(response.data[0]);
+            setSubjectDetails(response.data);
         });
         await axios.post(`${props.baseURL}/getcos`, {
             id: state.subject
@@ -27,9 +27,9 @@ export default function MappingCoPo(props) {
             academic_year: state.academicYear,
             did: props.userDetails.did
         }).then((response) => {
-            if(response.data.length > 0){
+            if (response.data.length > 0) {
                 setpso(response.data);
-            }else{
+            } else {
                 swal("Please Add PSO", "", "warning");
                 navigate("/copomapping");
             }
@@ -75,24 +75,24 @@ export default function MappingCoPo(props) {
     const po = ["PO1", "PO2", "PO3", "PO4", "PO5", "PO6", "PO7", "PO8", "PO9", "PO10", "PO11", "PO12"];
     // const pso = ["PSO1", "PSO2", "PSO3"];
 
-    const addPo = async (e,ind,i,type) => {
+    const addPo = async (e, ind, i, type) => {
         e.preventDefault();
         let value = e.target.value;
-        let pos='';
-        if(type == "PO"){
-            pos=po[i];
-        }else{
-            pos=pso[i];
+        let pos = '';
+        if (type == "PO") {
+            pos = po[i];
+        } else {
+            pos = pso[i];
         }
         await axios.post(`${props.baseURL}/addpo`, {
             id: state.subject,
-            co_id:cosData[ind].id,
-            pos:pos,
-            po:value,
+            co_id: cosData[ind].id,
+            pos: pos,
+            po: value,
         }).then((response) => {
-            if(response.data[0] > 0){
+            if (response.data[0] > 0) {
                 console.log("added")
-            }else{
+            } else {
                 swal("Marks Not Added", "", "error");
             }
         });
@@ -160,7 +160,7 @@ export default function MappingCoPo(props) {
                                     {
                                         po.map((details, i) => {
                                             return <td key={i}>
-                                                <select onChange={(e)=>{addPo(e,ind,i,"PO")}}>
+                                                <select onChange={(e) => { addPo(e, ind, i, "PO") }}>
                                                     <option value="">Select PO</option>
                                                     <option value="-">-</option>
                                                     <option value="1">1</option>
@@ -173,14 +173,14 @@ export default function MappingCoPo(props) {
                                     {
                                         pso.map((details, i) => {
                                             return <td key={i}>
-                                            <select>
-                                                <option value="">Select PSO</option>
-                                                <option value="-">-</option>
-                                                <option value="1">1</option>
-                                                <option value="2">2</option>
-                                                <option value="3">3</option>
-                                            </select>
-                                        </td>
+                                                <select>
+                                                    <option value="">Select PSO</option>
+                                                    <option value="-">-</option>
+                                                    <option value="1">1</option>
+                                                    <option value="2">2</option>
+                                                    <option value="3">3</option>
+                                                </select>
+                                            </td>
                                         })
                                     }
                                 </tr>
@@ -190,7 +190,7 @@ export default function MappingCoPo(props) {
                 </table>
                 <br />
                 <center>
-                <button className="btn btn-primary rounded" onClick={()=>{ swal("Record Added", "", "success");navigate("/copomapping"); }}>Submit</button>
+                    <button className="btn btn-primary rounded" onClick={() => { swal("Record Added", "", "success"); navigate("/copomapping"); }}>Submit</button>
                 </center>
             </div>
         </div>

@@ -19,7 +19,7 @@ export default function MarksEntryIa(props) {
             id: state.subject
         })
             .then((response) => {
-                setSubjectDetails(response.data[0]);
+                setSubjectDetails(response.data);
             });
         await axios.post(`${props.baseURL}/getiamarksentry`, {
             id: state.subject,
