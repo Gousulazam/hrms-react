@@ -31,32 +31,32 @@ export default function MarksEntryIa(props) {
             .then((response) => {
                 setStudentList(response.data[0]);
                 setQpDetails(response.data[1]);
-                
+
             });
     }
 
     useEffect(() => {
         test();
     }, [])
-    
+
 
     const handleColor = (e) => {
         const btn = e.target;
         let button = [...studentList];
         e.preventDefault();
         if (parseInt(e.target.value) === 1) {
-          e.target.innerText = "Absent";
-          e.target.value = 0;
-          e.target.className="btn btn-danger rounded";
+            e.target.innerText = "Absent";
+            e.target.value = 0;
+            e.target.className = "btn btn-danger rounded";
         }
         else {
-          e.target.value = 1;
-          e.target.innerText = "Present";
-          e.target.className="btn btn-success rounded";
+            e.target.value = 1;
+            e.target.innerText = "Present";
+            e.target.className = "btn btn-success rounded";
         }
         button[parseInt(e.target.getAttribute('abp'))].value = parseInt(e.target.value);
         console.log(button);
-      }
+    }
 
     const setValues = (e) => {
         qno = e.target.attributes.getNamedItem('qno').value;
@@ -101,10 +101,10 @@ export default function MarksEntryIa(props) {
         }
     }
 
-    const QpTd = (student_id,name,usn) => {
-            return qpDetails.map((data, i) => {
-                return <td key={i} className="text-center"><input style={{ width: "45px" }} className="form-control" type="text" onClick={(e) => e.target.disabled = false} onChange={(e) => setValues(e)} onBlur={(e) => addMarks(e)} student_id={student_id} name={name} usn={usn} qno={data.qno} maxmarks={data.marks} /></td>
-            })
+    const QpTd = (student_id, name, usn) => {
+        return qpDetails.map((data, i) => {
+            return <td key={i} className="text-center"><input style={{ width: "45px" }} className="form-control" type="text" onClick={(e) => e.target.disabled = false} onChange={(e) => setValues(e)} onBlur={(e) => addMarks(e)} student_id={student_id} name={name} usn={usn} qno={data.qno} maxmarks={data.marks} /></td>
+        })
     }
     return (
         <div className="card">
@@ -178,7 +178,7 @@ export default function MarksEntryIa(props) {
                                         <td>{data.name}</td>
                                         <td><button abp={i} className="btn btn-success rounded" value="1" onClick={handleColor}>P</button></td>
                                         {
-                                            QpTd(data.student_id,data.name,data.usn)
+                                            QpTd(data.student_id, data.name, data.usn)
                                         }
 
                                     </tr>
