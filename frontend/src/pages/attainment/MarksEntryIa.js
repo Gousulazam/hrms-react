@@ -13,6 +13,8 @@ export default function MarksEntryIa(props) {
     let maxmarks = '';
     let marks = '';
     let student_id = '';
+    let name1 = '';
+    let usn1 = '';
 
     const test = async () => {
         await axios.post(`${props.baseURL}/getsubjectdetailbyid`, {
@@ -27,87 +29,82 @@ export default function MarksEntryIa(props) {
             internal: state.internal
         })
             .then((response) => {
-                // setStudentList(response.data[0]);
+                setStudentList(response.data[0]);
                 setQpDetails(response.data[1]);
-                let data = [{ usn: "", name: "", value: 1, text: "P", classes: "btn btn-success rounded" }];
-                for (let i = 0; i < response.data[0].length; i++) {
-                    const element = response.data[0][i];
-                    data[i] = { usn: element.usn, name: element.name, value: 1, text: "P", classes: "btn btn-success rounded" }
-                }
-                setStudentList(data);
+                
             });
     }
 
     useEffect(() => {
         test();
     }, [])
-    const updateAttendance = (e, i) => {
-        let data2 = [...studentList];
-        if (data2[i]['value'] == 1) {
-            data2[i]['classes'] = "btn btn-danger rounded";
-            data2[i]['value'] = 0;
-            data2[i]['text'] = "A";
-        } else {
-            data2[i]['classes'] = "btn btn-success rounded";
-            data2[i]['value'] = 1;
-            data2[i]['text'] = "P";
+    
+
+    const handleColor = (e) => {
+        const btn = e.target;
+        let button = [...studentList];
+        e.preventDefault();
+        if (parseInt(e.target.value) === 1) {
+          e.target.innerText = "Absent";
+          e.target.value = 0;
+          e.target.className="btn btn-danger rounded";
         }
-        setStudentList(data2);
-
-        // if(studentList[i]['value'] == 1){
-        //     e.target.className="btn btn-danger rounded";
-        //     e.target.value=0;
-        //     e.target.innerText="A"
-        //     studentList[i]['value'] == 
-
-        // }else{
-        //     e.target.className="btn btn-success rounded";
-        //     e.target.value=1;
-        //     e.target.innerText="P" 
-        // }
-
-    }
+        else {
+          e.target.value = 1;
+          e.target.innerText = "Present";
+          e.target.className="btn btn-success rounded";
+        }
+        button[parseInt(e.target.getAttribute('abp'))].value = parseInt(e.target.value);
+        console.log(button);
+      }
 
     const setValues = (e) => {
         qno = e.target.attributes.getNamedItem('qno').value;
         maxmarks = e.target.attributes.getNamedItem('maxmarks').value;
-        student_id = e.target.attributes.getNamedItem('student_id').value;
         marks = e.target.value;
+        student_id = e.target.attributes.getNamedItem('student_id').value;
+        name1 = e.target.attributes.getNamedItem('name').value;
+        usn1 = e.target.attributes.getNamedItem('usn').value;
     };
 
     const addMarks = async (e) => {
         if (e.target.value != '') {
-            // alert(`qno:${qno} \n max marks : ${maxmarks} \n marks : ${marks}\n`);
-            await axios.post(`${props.baseURL}/addiamarks`, {
-                fid:subjectDetails.fid,
-                studentId:student_id,
-                scode:subjectDetails.scode,
-                qno:qno,
-                marks: marks,
-                internal:state.internal,
-                cid:subjectDetails.cid,
-                did:subjectDetails.did,
-                sem:subjectDetails.sem,
-                dv:subjectDetails.dv,
-                academicYear:subjectDetails.academic_year,
-                marksType:"internal",
-                max_marks:maxmarks,
-                uid:props.userDetails.id,
-            })
-                .then((response) => {
-                    if(response.data[0] > 0){
-                        e.target.disabled = true;
-                    }else{
-                        swal("Record Not Added","","warning");
-                    }
-                });
+            if (marks > maxmarks) {
+                swal(`Please Enter Marks Less Than or Equal to ${maxmarks}`, "", "warning");
+            } else {
+                await axios.post(`${props.baseURL}/addiamarks`, {
+                    fid: subjectDetails.fid,
+                    studentId: student_id,
+                    name: name1,
+                    usn: usn1,
+                    scode: subjectDetails.scode,
+                    qno: qno,
+                    marks: marks,
+                    internal: state.internal,
+                    cid: subjectDetails.cid,
+                    did: subjectDetails.did,
+                    sem: subjectDetails.sem,
+                    dv: subjectDetails.dv,
+                    academicYear: subjectDetails.academic_year,
+                    marksType: "internal",
+                    max_marks: maxmarks,
+                    uid: props.userDetails.id,
+                })
+                    .then((response) => {
+                        if (response.data[0] > 0) {
+                            e.target.disabled = true;
+                        } else {
+                            swal("Record Not Added", "", "warning");
+                        }
+                    });
+            }
         }
     }
 
-    const QpTd = (studId) => {
-        return qpDetails.map((data, i) => {
-            return <td key={i} className="text-center"><input style={{ width: "45px" }} className="form-control" type="text" onChange={(e) => setValues(e)} onBlur={(e) => addMarks(e)} student_id={studId} qno={data.qno} maxmarks={data.marks} /></td>
-        })
+    const QpTd = (student_id,name,usn) => {
+            return qpDetails.map((data, i) => {
+                return <td key={i} className="text-center"><input style={{ width: "45px" }} className="form-control" type="text" onClick={(e) => e.target.disabled = false} onChange={(e) => setValues(e)} onBlur={(e) => addMarks(e)} student_id={student_id} name={name} usn={usn} qno={data.qno} maxmarks={data.marks} /></td>
+            })
     }
     return (
         <div className="card">
@@ -179,8 +176,10 @@ export default function MarksEntryIa(props) {
                                         <td>{i + 1}</td>
                                         <td>{data.usn}</td>
                                         <td>{data.name}</td>
-                                        <td style={{ width: "50px" }}><button className={data.classes} value={data.value} onClick={(e) => updateAttendance(e, i)}>{data.text}</button></td>
-                                        <QpTd student_id={data.student_id} />
+                                        <td><button abp={i} className="btn btn-success rounded" value="1" onClick={handleColor}>P</button></td>
+                                        {
+                                            QpTd(data.student_id,data.name,data.usn)
+                                        }
 
                                     </tr>
                                 })

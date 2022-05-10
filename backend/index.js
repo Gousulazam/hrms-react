@@ -21,11 +21,13 @@ const settings = {
 };
 
 const pool = new QueryBuilder(settings, 'mysql', 'pool');
-
+let db='';
+const dbConnect = async () => db = await pool.get_connection();
+const dbDisconnect = async () => await db.release();
 const runQuery = async (query) => {
-    let db = await pool.get_connection();
+    await dbConnect();
     let run = db.query(query)
-    await db.release();
+    await dbDisconnect();
     return run;
 }
 
@@ -217,7 +219,7 @@ app.post('/getsubjectoptionbyfidandacademicyear', async (req, res) => {
 
 app.post('/getsubjectdetailbyid', async (req, res) => {
     let data = req.body;
-    let rows = await runQuery(`SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM college WHERE id=s.cid) as iname,(SELECT sname FROM dept WHERE id=s.did) AS dsname FROM subject s WHERE id='${data.id}'`);
+    let rows = await runQuery(`SELECT sname,scode,sem,cid,dept,academic_year,fid,did,dv,(SELECT iname FROM college WHERE id=s.cid) as iname,(SELECT sname FROM dept WHERE id=s.did) AS dsname FROM subject s WHERE id='${data.id}'`);
     res.send(rows[0]);
 
     // mysqlConnection.query('SELECT sname,scode,sem,cid,dept,academic_year,(SELECT iname FROM `college` WHERE id=s.cid) as iname FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
@@ -3727,12 +3729,14 @@ app.post('/addiamarks', async (req, res) => {
     let data = req.body;
     let insert = {
         fid: data.fid,
-        student_id: data.student_id,
+        name: data.name,
+        usn: data.usn,
+        student_id: data.studentId,
         scode: data.scode,
         marks_type: data.marksType,
         max_marks: data.max_marks,
         qno: data.qno,
-        marks: data.marks,
+        marks: parseFloat(data.marks),
         internal: data.internal,
         cid: data.cid,
         did: data.did,
@@ -3741,12 +3745,17 @@ app.post('/addiamarks', async (req, res) => {
         academic_year: data.academicYear,
         admin: data.uid,
     }
-    let checkRecord = await db.query(`SELECT id FROM nba_marks WHERE cid='${insert.cid}' AND scode='${insert.scode}' AND dv='${insert.dv}' AND internal='${insert.internal}' AND qno='${insert.qno}' AND academic_year='${insert.academic_year}'`);
+    // console.log(insert)
+    await dbConnect();
+    let checkRecord = await db.query(`SELECT id FROM nba_marks WHERE cid='${insert.cid}' AND scode='${insert.scode}' AND dv='${insert.dv}' AND internal='${insert.internal}' AND qno='${insert.qno}' AND academic_year='${insert.academic_year}' AND student_id='${insert.student_id}'`);
+    
     if (checkRecord.length == 0) {
         let isInsert = await db.insert('nba_marks', insert);
+        await dbDisconnect();
         res.send([isInsert.insertId]);
     } else {
-        let isInsert = await db.update('nba_marks', insert, { id: checkRecord.id });
+        let isInsert = await db.update('nba_marks', insert, { id: checkRecord[0].id });
+        await dbDisconnect();
         res.send([isInsert.affectedRows]);
     }
 });
