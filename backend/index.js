@@ -21,7 +21,7 @@ const settings = {
 };
 
 const pool = new QueryBuilder(settings, 'mysql', 'pool');
-let db='';
+let db = '';
 const dbConnect = async () => db = await pool.get_connection();
 const dbDisconnect = async () => await db.release();
 const runQuery = async (query) => {
@@ -3379,7 +3379,7 @@ app.post('/deletefeedetailsupdate', async (req, res) => {
         } else if (data.admin == 2) {
             let transaction2 = await runQuery(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
             let deleteTrDtls = await runQuery(`SELECT fee_id FROM fee_transactions  WHERE id='${data.id}'`);
-            
+
             if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
@@ -3748,7 +3748,7 @@ app.post('/addiamarks', async (req, res) => {
     // console.log(insert)
     await dbConnect();
     let checkRecord = await db.query(`SELECT id FROM nba_marks WHERE cid='${insert.cid}' AND scode='${insert.scode}' AND dv='${insert.dv}' AND internal='${insert.internal}' AND qno='${insert.qno}' AND academic_year='${insert.academic_year}' AND student_id='${insert.student_id}'`);
-    
+
     if (checkRecord.length == 0) {
         let isInsert = await db.insert('nba_marks', insert);
         await dbDisconnect();
@@ -3758,4 +3758,239 @@ app.post('/addiamarks', async (req, res) => {
         await dbDisconnect();
         res.send([isInsert.affectedRows]);
     }
+});
+
+app.post('/getattainmentsheetia', async (req, res) => {
+    let data = req.body;
+    let rows = await runQuery(`SELECT sname,scode,sem,dv,cid,did,dv,academic_year,fid,(SELECT sname FROM dept WHERE id=s.did) AS dsname,(select iname FROM college WHERE id=s.cid) AS iname FROM subject s WHERE id='${data.subject}'`);
+    let subjectDetails = rows[0];
+
+    let table = `
+    <p style="font-size:17pt;text-align:center;font-family:Cambria;color:#0047b3;line-height: 50%;" class="text-uppercase text-center">SECAB&zwnj; &zwnj;Association’s&zwnj;</p>
+    <div class="row">
+        <div class="col-md-3">
+            <center><img src="http://hrms.secab.org/images/siet.png" alert="No images" style="width:40%;height:80px;"></center>
+        </div>
+        <div class="col-md-7">
+            <p style="font-size:16pt;text-align:center;font-family:Cambria;color:#0047b3;line-height: 50%;" class="text-uppercase">${subjectDetails.iname}</p>
+            <p style="font-size:16pt;text-align:center;font-family:Cambria;color:#0047b3;line-height: 50%;" class="text-uppercase">VIJAYAPUR-586109</p>
+            <p style="font-size:14pt;text-align:center;font-family:Cambria;color:#cc0000;line-height: 50%;" class="text-uppercase">DEPARTMENT OF ${subjectDetails.dept} Engineering</p>
+            <p style="font-size:16pt;text-align:center;font-family:Cambria;color:#0047b3;line-height: 50%;" class="text-uppercase">COURSE OUTCOME ATTAINMENT THROUGH INTERNAL EVALUATION (CIE)</p>
+        </div>
+
+        <table class="table table-bordered text-uppercase">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Subject name : ${subjectDetails.sname}</th>
+                    <th>Branch : ${subjectDetails.dsname}</th>
+                </tr>
+                <tr>
+                    <th>Subject code : ${subjectDetails.scode} </th>
+                    <th>div : ${subjectDetails.dv}</th>
+                </tr>
+                <tr>
+                    <th>course id : </th>
+                    <th>IA : ${data.internal}</th>
+                </tr>
+            </thead>
+        </table>`;
+    let qpDetails = await runQuery(`SELECT qno,marks,co_id,(SELECT cos FROM nba_co WHERE id=n.co_id) as cos FROM nba_question n WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND internal='${data.internal}' AND qno NOT IN('part-a','part-B','or')`);
+    let studentList = await runQuery(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`);
+
+    table += `<table class="table table-bordered text-uppercase text-center" id="table-freeze">
+    <thead class="thead-dark"><tr><th colspan="3" class="text-center">qno</th>`;
+    qpDetails.map((data, i) => {
+        table += `<th key=${i}>${data.qno}</th>`;
+    });
+    table += `</tr><tr> 
+    <th colspan="3" class="text-center">co</th>`;
+    qpDetails.map((data, i) => {
+        table += `<th key=${i}>${data.cos}</th>`;
+    });
+    table += `</tr><tr>
+    <th rowSpan="2" class="align-middle">sl no</th>
+    <th rowSpan="2" class="align-middle">usn</th>
+    <th rowSpan="2" class="align-middle">name</th>
+    <th colSpan=${qpDetails.length} class="text-center">max marks</th>
+    </tr>
+    <tr>`;
+    qpDetails.map((data, i) => {
+        table += `<th key=${i}>${data.marks}</th>`;
+    })
+    table += `</tr><tbody>`;
+    let benchMarkTd = '';
+    let attainmentPercentageTd = '';
+    let attainmentValueTd = '';
+    const getAttainmentLevel = ($range) => {
+
+        $al = '';
+        if ($range < 60) {
+            $al = "0";
+        }
+        if ($range >= 60 && $range < 70) {
+            $al = "1";
+        } else if ($range >= 70 && $range < 80) {
+            $al = "2";
+        } else if ($range >= 80 && $range <= 100) {
+            $al = "3";
+        }
+
+        return $al;
+    }
+    let attainmentLevelArray = [];
+    let a=0;
+    for (let index = 0; index < studentList.length; index++) {
+        const data1 = studentList[index];
+        table += `<tr key=${index}>
+            <td>${index + 1}</td>
+            <td>${data1.usn}</td>
+            <td>${data1.name}</td>`;
+        for (let j = 0; j < qpDetails.length; j++) {
+            const element = qpDetails[j];
+            let row2 = await runQuery(`SELECT marks FROM nba_marks WHERE student_id='${data1.student_id}' AND qno='${element.qno}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`);
+            table += `<td>${row2.length == 0 ? '-' : row2[0].marks}</td>`;
+            let marks = 0;
+            row2.length != 0 ? marks = row2[0].marks : ''
+            if (index == (studentList.length - 1)) {
+                let percentage = data.benchMarks / 100;
+                let targetValue = element.marks * percentage;
+                let attainmentMarks = await runQuery(`SELECT count(marks) AS marks FROM nba_marks WHERE did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND internal='${data.internal}' AND qno='${element.qno}' AND marks >='${targetValue}' AND academic_year='${subjectDetails.academic_year}'`)
+                benchMarkTd += `<td>${targetValue}</td>`;
+                attainmentPercentageTd += `<td>${attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0"}</td>`;
+                attainmentValueTd += `<td>${getAttainmentLevel(attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0")}</td>`;
+                attainmentLevelArray[a]=getAttainmentLevel(attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0");
+                a++;
+            }
+
+        }
+        table += `</tr>`;
+    }
+    table += `<tr>
+        <td colspan="3">TARGET VALUE (${data.benchMarks}% OPTIMUM MARKS)</td>
+        ${benchMarkTd}
+    </tr>
+    <tr>
+        <td colspan="3">ATTAINMENT PERCENTAGE</td>
+        ${attainmentPercentageTd}
+    </tr>
+    <tr>
+        <td colspan="3">ATTAINMENT Value</td>
+        ${attainmentValueTd}
+    </tr>`;
+    let cos = await runQuery(`SELECT cos,co,id,hod,stmt,fid,scode,did,dv,academic_year FROM nba_co WHERE fid='${subjectDetails.fid}' AND scode='${subjectDetails.scode}' AND academic_year='${subjectDetails.academic_year}' AND dv='${subjectDetails.dv}'`)
+    table += `</tbody></table>
+    <div class="col-sm-12">
+                        <h6 align="center" class="mb-2 mt-2">CO ATTAINMENT (Direct attainment of CO)</h6>
+                        <table class="table table-bordered text-uppercase text-center">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th rowspan="3" class="align-middle">
+                                        co
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th colspan="${qpDetails.length+2}" class="text-center">
+                                        Question No
+                                    </th>
+                                </tr>
+                                <tr>`;
+                                
+                                    qpDetails.map((data, i) => {
+                                        table+= `<th>${data.qno}</th>`
+                                    })
+                                    
+                                table+=`<th>TOTAL</th>
+                                <th>CO ATTAINMENT</th></tr>
+                            </thead>
+                            <tbody>`;
+                            for (let i = 0; i < cos.length; i++) {
+                                const element = cos[i];
+                                table+=`
+                                <tr>
+                                <td>${element.cos}</td>`;
+                                let coAttainment = [];
+                                let c=0;
+                                for (let j = 0; j < qpDetails.length; j++) {
+                                    const element1 = qpDetails[j];
+                                    if(element.id == element1.co_id){
+                                        table+=`<td>${attainmentLevelArray[j]}</td>`
+                                        coAttainment[c]=attainmentLevelArray[j];
+                                        c++;
+                                    }else{
+                                        table+=`<td>-</td>`
+                                    }
+                                }
+                                let total = coAttainment.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+                                let coAttained = 0;
+                                if(coAttainment.length!=0){
+                                    coAttained= total / coAttainment.length;
+                                }
+                                table+=`<td>${total}</td><td>${coAttained}</td>`;
+                                table+=`</tr>`;
+                                
+                            }
+                            table+=`</tbody>
+                        </table>
+                    </div>`;
+    res.send(table);
+});
+
+app.post('/addco', async (req, res) => {
+    let data = req.body;
+    let rows = await runQuery(`SELECT scode,fid,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`)
+    let subjectDetails = rows[0];
+    let inserted = 0;
+
+    for (let i = 0; i < data.coData.length; i++) {
+        const element = data.coData[i];
+       if(element.id == ''){
+        let insert = {
+            fid:subjectDetails.fid,
+            cid:subjectDetails.cid,
+            did:subjectDetails.did,
+            scode:subjectDetails.scode,
+            dv:subjectDetails.dv,
+            co:element.co,
+            cos:element.cos,
+            stmt:element.stmt,
+            academic_year:element.academic_year,
+        };
+
+        await dbConnect();
+        let isInsert = await db.insert('nba_co', insert);
+        await dbConnect();
+        if(isInsert.insertId > 0){
+            inserted++;
+        }
+       }else{
+        let insert = {
+            fid:subjectDetails.fid,
+            cid:subjectDetails.cid,
+            did:subjectDetails.did,
+            scode:subjectDetails.scode,
+            dv:subjectDetails.dv,
+            co:element.co,
+            cos:element.cos,
+            stmt:element.stmt,
+            academic_year:element.academic_year,
+        };
+
+        await dbConnect();
+        let isInsert = await db.update('nba_co', insert, { id: element.id });
+        await dbConnect();
+        if(isInsert.insertId > 0){
+            inserted++;
+        }  
+       }
+        
+    }
+
+    if(inserted > 0){
+        res.send(["Record Added","success"]);
+    }else{
+        res.send(["Record Not Added","error"]);
+    }
+
+
+    
 });

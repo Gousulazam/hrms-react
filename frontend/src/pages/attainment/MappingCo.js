@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import axios from "axios";
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './attainment.css';
+import swal from 'sweetalert';
 
 export default function MappingCo(props) {
     const { state } = useLocation();
+    let navigate = useNavigate();
     const [subjectDetails, setSubjectDetails] = useState([])
-
+    let coData = [{id:"", cos: "", co: "", stmt: "" }];
+    
     useEffect(() => {
         axios.post(`${props.baseURL}/getsubjectdetailbyid`, {
             id: state.subject
         })
             .then((response) => {
-                setSubjectDetails(response.data[0]);
+                setSubjectDetails(response.data);
                 // console.log(response.data)
             });
 
@@ -53,9 +56,7 @@ export default function MappingCo(props) {
 
     let tbody = [];
     let sl = 1;
-    const addCo = (e) => {
-        e.preventDefault();
-    };
+    
 
     for (let index = 0; index < 4; index++) {
         let co = `C`;
@@ -83,12 +84,16 @@ export default function MappingCo(props) {
         sl++;
 
     }
-
+    
+    const setStmt = (i, e) => {
+        coData[i]['stmt'] = e.target.value;
+        console.log(coData)
+    }
     const [body, setbody] = useState(tbody.map((role, i) => {
-        console.log(role,i)
+        coData[i] = { cos: role, co: `co${i + 1}`, stmt: "" }
         return <tr key={i}>
             <td>{role}</td>
-            <td><textarea required="" name="coStatement[]" className="coStatement form-control" placeholder="Enter CO Statement" cols="80"></textarea></td>
+            <td><textarea required="" name="coStatement[]" className="coStatement form-control" onChange={(e) => setStmt(i, e)} placeholder="Enter CO Statement" cols="80"></textarea></td>
             <td>-</td>
             <td>
                 <center className="mt-3">
@@ -98,7 +103,20 @@ export default function MappingCo(props) {
             </td>
         </tr>
     }))
-    console.log(tbody)
+
+    const addCo = (e) => {
+        e.preventDefault();
+        axios.post(`${props.baseURL}/addco`, {
+            id: state.subject,
+            coData
+        })
+            .then((response) => {
+                swal(response.data[0], "", response.data[1]).then(() => {
+                    navigate("/addco");
+                })
+            });
+    };
+
     return (
         <div className="card">
             <div className="card-body table-responsive">
@@ -137,7 +155,7 @@ export default function MappingCo(props) {
                     <table className="table table-bordered maintable">
                         <thead className="thead-dark">
                             <tr>
-                                <th rowSpan="2" className='text-center align-middle'>CO Identification No</th>
+                                <th rowSpan="2" className='text-center align-middle'>CO <br /> Identification <br /> No</th>
                                 <th className='text-center'>CO Statement</th>
                                 <th rowSpan="2" className='text-center align-middle'>HOD</th>
                                 <th rowSpan="2" className='text-center align-middle'>Add / Delete </th>

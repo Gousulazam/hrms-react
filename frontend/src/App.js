@@ -65,6 +65,8 @@ import PayDepartmentWise from './pages/fees/PayDepartmentWise';
 import DepartmentWisePay from './pages/fees/DepartmentWisePay';
 import IaMarksEntry from './pages/attainment/IaMarksEntry';
 import MarksEntryIa from './pages/attainment/MarksEntryIa';
+import IaAttainmentSheet from './pages/attainment/IaAttainmentSheet';
+import SheetAttainmentIa from './pages/attainment/SheetAttainmentIa';
 
 function App() {
   const Dashboard = () => {
@@ -240,6 +242,8 @@ function App() {
               <Route path="/departmentwisepay" element={<DepartmentWisePay baseURL={baseURL} userDetails={userDetails} numberWithCommas={numberWithCommas} />} />
               <Route path="/iamarksentry" element={<IaMarksEntry baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/marksentryia" element={<MarksEntryIa baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/iaattainmentsheet" element={<IaAttainmentSheet baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/sheetattainmentia" element={<SheetAttainmentIa baseURL={baseURL} userDetails={userDetails} />} />
             </Routes>
           </BrowserRouter>
         </div>
