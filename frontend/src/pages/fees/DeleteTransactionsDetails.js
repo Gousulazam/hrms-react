@@ -14,8 +14,9 @@ export default function DeleteTransactionsDetails(props) {
             id
         })
             .then((response) => {
-                swal(response.data[0], "", response.data[1]);
-                navigate("/deletetransaction");
+                swal(response.data[0], "", response.data[1]).then(()=>{
+                    window.location.reload();
+                });
             });
 
     }

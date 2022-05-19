@@ -18,8 +18,10 @@ export default function StudentEditFeeDetails(props) {
             id, paidFee, remarks,uni_fee,tut_fee, uid: props.userDetails.id
         })
             .then((response) => {
-                swal(response.data[0], "", response.data[1]);
-                navigate("/editstudentfeedetails");
+                swal(response.data[0], "", response.data[1]).then(()=>{
+                    window.location.reload();
+                });
+                // navigate("/editstudentfeedetails");
             });
     }
 

@@ -17,8 +17,10 @@ export default function StudentDeleteFeeDetails(props) {
             id,paidFee,remarks,uid: props.userDetails.id
         })
             .then((response) => {
-                swal(response.data[0], "", response.data[1]);
-                navigate("/deletestudentfeedetails");
+                swal(response.data[0], "", response.data[1]).then(() =>{
+                    window.location.reload();
+                });
+                // navigate("/deletestudentfeedetails");
             });
     }
 

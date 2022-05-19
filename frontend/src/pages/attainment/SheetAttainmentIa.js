@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 
 export default function SheetAttainmentIa(props) {
     const { state } = useLocation();
-    const [table, setTable] = useState(``);
+    const [table, setTable] = useState(props.loader());
 
     const test = async () => {
         await axios.post(`${props.baseURL}/getattainmentsheetia`, {

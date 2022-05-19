@@ -29,7 +29,7 @@ export default function AddEresouce(props) {
                 title: title,
             })
                 .then((response) => {
-                    if (response.data.insertId > 0) {
+                    if (parseInt(response.data[0]) > 0) {
                         swal("Record Added", "", "success");
                         document.getElementById("eresource").reset();
                         setFtype("");
@@ -49,9 +49,10 @@ export default function AddEresouce(props) {
             formData.append('title', title);
             axios.post(`${props.baseURL}/adderesource`, formData)
                 .then((response) => {
-                    if (response.data.insertId > 0) {
+                    if (response.data[0] > 0) {
                         swal("Record Added", "", "success");
                         document.getElementById("eresource").reset();
+                        setchangeEvent(changeEvent+1);
                         setFtype("");
                     } else {
                         swal("Record Not Added", "", "error");
@@ -92,7 +93,7 @@ export default function AddEresouce(props) {
         } else if (ftype == "LINK") {
             return <div className="form-group">
                 <label htmlFor="">Link</label>
-                <input type="text" className="form-control" name="link" id="link" aria-describedby="helpId" placeholder="Enter Link" onChange={e => setLink(e.target.value)} value={link} />
+                <input type="text" className="form-control" name="link" id="link" aria-describedby="helpId" placeholder="Enter Link" onChange={e => setLink(e.target.value)} />
             </div>
         } else {
             return <div className="form-group">
@@ -152,7 +153,7 @@ export default function AddEresouce(props) {
                             <td>{ element.title }</td>
                             <td>{ element.utp }</td>
                             <td>{ element.utp == "LINK" ? <a href={element.path} target="_blank" rel="noopener noreferrer"><i className="fa fa-link" aria-hidden="true"></i>{element.path}</a> : <a href={element.path} target="_blank" rel="noopener noreferrer" className='btn btn-info rounded'><i className="fa fa-download" aria-hidden="true"></i> Download</a>}</td>
-                            <td><button className="btn btn-danger rounded" onClick={deleteResource} value={element.id} ><i class="fa fa-trash-o" aria-hidden="true"></i> Delete</button></td>
+                            <td><button className="btn btn-danger rounded" onClick={deleteResource} value={element.id} ><i className="fa fa-trash-o" aria-hidden="true"></i> Delete</button></td>
                         </tr>
                     })
                 );
@@ -198,13 +199,15 @@ export default function AddEresouce(props) {
                             <label htmlFor="">Title</label>
                             <input className="form-control" id="title" name="title" placeholder="Enter Title" required="" onChange={e => setTitle(e.target.value)} />
                         </div>
-                        <LinkOrFileFeild />
+                        {/* {<LinkOrFileFeild />} */
+                        LinkOrFileFeild()
+                        }
                     </div>
                     <div className="card-footer">
                         <center><button type="submit" className="btn btn-primary btn-sm rounded mr-2">
                             <i className="fa fa-dot-circle-o"></i> Submit
                         </button>
-                            <button type="reset" className="btn btn-danger btn-sm rounded" onClick={e => { setPtbody("<tr><td colspan='8' className='text-center font-weight-bold text-danger' >Please Select Subject</td></tr>"); setFtype(""); }} >
+                            <button type="reset" className="btn btn-danger btn-sm rounded" onClick={e => { setPtbody([0].map((data,i)=>{ return <tr key={i}><td colSpan='8' className='text-center font-weight-bold text-danger' >Please Select Subject</td></tr> })); setFtype(""); }} >
                                 <i className="fa fa-ban"></i> Reset
                             </button>
                         </center>

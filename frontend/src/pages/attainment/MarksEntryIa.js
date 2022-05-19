@@ -45,17 +45,16 @@ export default function MarksEntryIa(props) {
         let button = [...studentList];
         e.preventDefault();
         if (parseInt(e.target.value) === 1) {
-            e.target.innerText = "Absent";
+            e.target.innerText = "A";
             e.target.value = 0;
             e.target.className = "btn btn-danger rounded";
         }
         else {
             e.target.value = 1;
-            e.target.innerText = "Present";
+            e.target.innerText = "P";
             e.target.className = "btn btn-success rounded";
         }
         button[parseInt(e.target.getAttribute('abp'))].value = parseInt(e.target.value);
-        console.log(button);
     }
 
     const setValues = (e) => {
@@ -138,9 +137,6 @@ export default function MarksEntryIa(props) {
                             </tr>
                         </thead>
                     </table>
-
-
-
 
                     <table className="table table-bordered text-uppercase text-center" id="table-freeze">
                         <thead className="thead-dark">

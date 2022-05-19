@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 
 export default function DepartmentConsolidate(props) {
     const { state } = useLocation();
-    const [body, setBody] = useState("");
+    const [body, setBody] = useState(props.loader());
     const test = async () => {
 
         axios.post(`${props.baseURL}/departmentconsolidate`, {

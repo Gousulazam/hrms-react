@@ -68,6 +68,7 @@ import MarksEntryIa from './pages/attainment/MarksEntryIa';
 import IaAttainmentSheet from './pages/attainment/IaAttainmentSheet';
 import SheetAttainmentIa from './pages/attainment/SheetAttainmentIa';
 
+
 function App() {
   const Dashboard = () => {
     return <div className="App">
@@ -173,6 +174,7 @@ function App() {
     })
   }
   const baseURL = `http://localhost:5000`;
+  const loader = () => { return `<center><img width="80%" height="500px" src='/assets/loader/Vanilla-1s-280px.svg' /></center>`;}
   return (
     <>
       {login && <Sidebar userDetails={userDetails} setRole={setRole} role={role} baseURL={baseURL} />}
@@ -188,13 +190,13 @@ function App() {
               <Route path="/viewco" element={<ViewCo baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/coview" element={<CoView baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/subjectreport" element={<SubjectReport baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/reportSubject" element={<ReportSubject baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} loader={loader} />}  />
               <Route path="/viewquestionpaper" element={<ViewQuestionPaper baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/handlingsubject" element={<HandlingSubject baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/eresource" element={<AddEresouce baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/uploadscheme" element={<Scheme baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/subjectreportdetails" element={<SubjectReportDetails baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/reportsubjectdetails" element={<ReportSubjectDetails baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
               <Route path="/viewattendance" element={<ViewAttendance baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/attendanceview" element={<AttendanceView baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/iareport" element={<IaReport baseURL={baseURL} userDetails={userDetails} />} />
@@ -220,15 +222,15 @@ function App() {
               <Route path="/assingdivison" element={<Assingdivison baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/studentlistview" element={<Studentlistview baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/departmentfeeDetails" element={<DepartmentFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/feeDetailsdepartment" element={<FeeDetailsDepartment baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
+              <Route path="/consolidatedepartmentfeeDetails" element={<ConsolidateDepartmentFeeDetails baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
               <Route path="/consolidatedepartment" element={<ConsolidateDepartment baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/departmentconsolidate" element={<DepartmentConsolidate baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
+              <Route path="/feecollectiondetails" element={<FeeCollectionDetails baseURL={baseURL} userDetails={userDetails}  />} />
+              <Route path="/collectionfeedetails" element={<CollectionFeeDetails baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
               <Route path="/payusnwise" element={<PayUsnWise baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/afterpaytransaction" element={<AfterPayTransaction baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
-              <Route path="/viewconsolidatefeesdetails" element={<ViewConsolidateFeesDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
+              <Route path="/viewconsolidatefeesdetails" element={<ViewConsolidateFeesDetails baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} loader={loader} />} />
               <Route path="/deletetransaction" element={<DeleteTransaction baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
               <Route path="/viewdeletetranscationstatus" element={<ViewDeleteTranscationStatus baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/approvedeletetranscations" element={<ApproveDeleteTranscations baseURL={baseURL} userDetails={userDetails} formatDate={formatDate} numberWithCommas={numberWithCommas} />} />
@@ -243,7 +245,7 @@ function App() {
               <Route path="/iamarksentry" element={<IaMarksEntry baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/marksentryia" element={<MarksEntryIa baseURL={baseURL} userDetails={userDetails} />} />
               <Route path="/iaattainmentsheet" element={<IaAttainmentSheet baseURL={baseURL} userDetails={userDetails} />} />
-              <Route path="/sheetattainmentia" element={<SheetAttainmentIa baseURL={baseURL} userDetails={userDetails} />} />
+              <Route path="/sheetattainmentia" element={<SheetAttainmentIa baseURL={baseURL} userDetails={userDetails} loader={loader} />} />
             </Routes>
           </BrowserRouter>
         </div>

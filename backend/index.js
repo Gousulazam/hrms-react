@@ -233,10 +233,35 @@ app.post('/getsubjectdetailbyid', async (req, res) => {
 
 app.post('/getsubjectreport', async (req, res) => {
     let data = req.body;
-    let rows1 = await runQuery(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`);
+    let rows1 = await runQuery(`SELECT sname,scode,sem,cid,did,dv,academic_year,dept,(SELECT iname FROM college WHERE id=s.cid) AS iname FROM subject s WHERE id='${data.id}'`);
     let subjectDetails = rows1[0];
     let rows = await runQuery(`SELECT  sa.student_id,si.usn,si.name,(SELECT COUNT(id) FROM class WHERE scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND acd_year='${subjectDetails.academic_year}' AND date BETWEEN '${data.fdate}' AND '${data.tdate}') AS class_conducted,(SELECT COUNT(id) FROM attend WHERE student_id=sa.student_id AND scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND date BETWEEN '${data.fdate}' AND '${data.tdate}') AS class_attended FROM student_academic sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`);
-    let tbody = ``;
+    let tbody = `<div class="card-header">
+        <center><img src="https://hrms.secab.org/images/slo2.png" alert="no Image" /> </center>
+        <br />
+        <center>
+            <strong>
+                ${subjectDetails['iname']} <br />
+                Department Of ${subjectDetails['dept']} <br />
+                Semester - ${subjectDetails['sem']}<br />subject - ${subjectDetails['sname']} (${subjectDetails['scode']})<br />
+                REPORT FROM ${formatDate('', data.fdate)} TO ${formatDate('', data.tdate)}</strong>
+        </center>
+    </div>`;
+    tbody += `<div class="card-body">
+    <table class="table table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th colSpan="5" class="text-center">Classes Conducted : ${rows[0].class_conducted}</th>
+            </tr>
+            <tr>
+                <th>sl no</th>
+                <th>usn</th>
+                <th>name</th>
+                <th>attended</th>
+                <th>percentage</th>
+            </tr>
+        </thead>
+        <tbody>`;
     let percentage = 0;
     for (let index = 0; index < rows.length; index++) {
         if (rows[index].class_conducted != 0) {
@@ -254,7 +279,10 @@ app.post('/getsubjectreport', async (req, res) => {
         </tr>`;
 
     }
-    res.send([tbody, rows[0].class_conducted])
+    tbody += ` </tbody>
+    </table>
+</div>`;
+    res.send(tbody)
     // mysqlConnection.query('SELECT scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
     //     if (!err) {
     //         let subjectDetails = rows[0];
@@ -289,23 +317,27 @@ app.post('/getsubjectreport', async (req, res) => {
     // })
 });
 
-app.post('/getcoadded', (req, res) => {
+app.post('/getcoadded', async (req, res) => {
     let data = req.body;
-
-    mysqlConnection.query('SELECT scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
-        if (!err) {
-            let subjectDetails = rows[0];
-            mysqlConnection.query(`SELECT stmt,cos FROM nba_co WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`, (err, rows, fields) => {
-                if (!err) {
-                    res.send(rows);
-                } else {
-                    console.log(err);
-                }
-            })
-        } else {
-            console.log(err);
-        }
-    })
+    let rows = await runQuery(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`);
+    let subjectDetails = rows[0];
+    let rows1 = await runQuery(`SELECT stmt,cos FROM nba_co WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`);
+    // console.log(rows1)
+    res.send(rows1);
+    // mysqlConnection.query('SELECT scode,sem,cid,did,dv,academic_year FROM `subject` s WHERE id=?', [data.id], (err, rows, fields) => {
+    //     if (!err) {
+    //         let subjectDetails = rows[0];
+    //         mysqlConnection.query(`SELECT stmt,cos FROM nba_co WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND scode='${subjectDetails.scode}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}'`, (err, rows, fields) => {
+    //             if (!err) {
+    //                 res.send(rows);
+    //             } else {
+    //                 console.log(err);
+    //             }
+    //         })
+    //     } else {
+    //         console.log(err);
+    //     }
+    // })
 });
 
 app.post('/getquestionpaper', async (req, res) => {
@@ -684,12 +716,13 @@ app.post('/adderesource', async (req, res) => {
     let subjectDetails = rows1[0];
     let path = '';
     let oldPath = '';
+    let h = [];
     if (data.ftype == 'LINK') {
         path = data.link;
         oldPath = data.link;
         sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
         let rows2 = await runQuery(sql);
-        res.send(rows2);
+        res.send([rows2.insertId]);
         // mysqlConnection.query(sql, (err, rows2, fields) => {
         //     if (!err) {
         //         res.send(rows2);
@@ -707,13 +740,13 @@ app.post('/adderesource', async (req, res) => {
 
         file.mv(`${newpath}${filename}`, async (err) => {
             if (err) {
-                let h = [];
-                h['insertId'] = 0
-                res.send(h);
+                res.send([0]);
             }
 
             sql = `INSERT INTO esrc(subject, scode, fid, fname, dept, did, dv, sem, title, utp, path, path_old, academic_year) VALUES ('${subjectDetails.sname}','${subjectDetails.scode}','${subjectDetails.fid}','${subjectDetails.fname}','${subjectDetails.dept}','${subjectDetails.did}','${subjectDetails.dv}','${subjectDetails.sem}','${data.title}','${data.ftype}','${path}','${oldPath}','${subjectDetails.academic_year}')`;
             rows2 = await runQuery(sql);
+            console.log(rows2.insertId)
+            res.send([rows2.insertId]);
             // mysqlConnection.query(sql, (err, rows2, fields) => {
             //     if (!err) {
             //         res.send(rows2);
@@ -1129,7 +1162,7 @@ app.post('/test', async (req, res) => {
 
 app.post('/getsubjectreportdetails', async (req, res) => {
     let data = req.body;
-    let rows = await runQuery(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`);
+    let rows = await runQuery(`SELECT sname,scode,sem,cid,did,dv,academic_year,dept,(SELECT iname FROM college WHERE id=s.cid) AS iname FROM subject s WHERE id='${data.id}'`);
     let subjectDetails = rows[0];
     let classTaken = await runQuery(`SELECT date FROM class WHERE cid='${subjectDetails.cid}' AND did='${subjectDetails.did}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND acd_year='${subjectDetails.academic_year}' AND date BETWEEN '${data.fdate}' AND '${data.tdate}'`)
     let studentList = await runQuery(`SELECT  sa.student_id,si.usn,si.name FROM sub_info sa INNER JOIN student_info si ON sa.student_id = si.student_id WHERE sem='${subjectDetails.sem}' AND sa.did='${subjectDetails.did}' AND dv='${subjectDetails.dv}' AND sa.cid='${subjectDetails.cid}' AND scd='${subjectDetails.scode}' AND sa.academic_year='${subjectDetails.academic_year}' ORDER BY si.usn ASC`)
@@ -1145,12 +1178,7 @@ app.post('/getsubjectreportdetails', async (req, res) => {
                 <td>${studentDetails['name']}</td>`;
         let classAttended = 0;
         for (let j = 0; j < classTaken.length; j++) {
-            const today = new Date(classTaken[j]['date']);
-            var dd = String(today.getDate()).padStart(2, '0');
-            var mm = String(today.getMonth() + 1).padStart(2, '0');
-            var yyyy = today.getFullYear();
-
-            let date = `${yyyy}-${mm}-${dd}`;
+            let date = formatDate('db',classTaken[j]['date']);
             let status = ``;
             let checkAttendance = await runQuery(`SELECT atn FROM attend WHERE student_id='${studentDetails['student_id']}' AND scd='${subjectDetails.scode}' AND sem='${subjectDetails.sem}' AND dv='${subjectDetails.dv}' AND academic_year='${subjectDetails.academic_year}' AND date='${date}'`)
             if (checkAttendance.length > 0) {
@@ -1165,7 +1193,7 @@ app.post('/getsubjectreportdetails', async (req, res) => {
             }
             tbody += `<td>${status}</td>`;
             if (i == 0) {
-                dateTr += `<th>${date}</th>`;
+                dateTr += `<th>${formatDate('',date)}</th>`;
                 countTr += `<th>${j + 1}</th>`;
             }
         }
@@ -1177,7 +1205,19 @@ app.post('/getsubjectreportdetails', async (req, res) => {
         }
         tbody += `<td>${classAttended}</td> <td>${percentage}</td> </tr>`;
     }
-    let table = `<table class="table table-bordered text-center">
+    let table = `<div class="card-header">
+    <center><img src="https://hrms.secab.org/images/slo2.png" alert="no Image" /> </center>
+    <br />
+    <center>
+        <strong>
+            ${subjectDetails['iname']} <br />
+            Department Of ${subjectDetails['dept']} <br />
+            Semester - ${subjectDetails['sem']}<br />subject - ${subjectDetails['sname']} (  ${subjectDetails['scode']} )<br />
+            REPORT FROM ${formatDate('', data.fdate)} TO ${formatDate('', data.tdate)}</strong>
+    </center>
+</div>
+<card class='card-body'>
+<table class="table table-bordered text-center">
             <thead class="thead-dark">
                 <tr>
 				    <th colspan="${classTaken.length + 5}" class="text-capitalize text-center">classes conducted ${classTaken.length}</th>
@@ -1201,7 +1241,7 @@ app.post('/getsubjectreportdetails', async (req, res) => {
             <tbody>
             ${tbody}
             </tbody>
-        </table>`;
+        </table></div>`;
     res.send(table);
     // mysqlConnection.query(`SELECT scode,sem,cid,did,dv,academic_year FROM subject s WHERE id='${data.id}'`, async (err, rows, fields) => {
     //     if (!err) {
@@ -3580,45 +3620,45 @@ app.post('/editfeedetailsupdate', async (req, res) => {
                 res.send(["Not Approved", "error"]);
             }
         } else if (data.admin == 2) {
-            let transaction2 = await promisePool.query(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
+            let transaction2 = await runQuery(`UPDATE fee_transactions SET admin2='${data.sign}' WHERE id='${data.id}'`);
 
-            if (transaction2[0].affectedRows > 0) {
+            if (transaction2.affectedRows > 0) {
                 if (data.sign == 'rejected') {
                     res.send(["Rejected", "success"]);
                 } else {
-                    let oldFeeDetails = await promisePool.query(`SELECT * FROM fee_details WHERE id=(SELECT fee_id FROM fee_transactions WHERE id='${data.id}')`);
-                    let changeFeeDetails = await promisePool.query(`SELECT * FROM fee_transactions WHERE id='${data.id}'`);
+                    let oldFeeDetails = await runQuery(`SELECT * FROM fee_details WHERE id=(SELECT fee_id FROM fee_transactions WHERE id='${data.id}')`);
+                    let changeFeeDetails = await runQuery(`SELECT * FROM fee_transactions WHERE id='${data.id}'`);
                     let old_fee_fixed = '';
 
                     if (data.cid == 1) {
-                        old_fee_fixed = oldFeeDetails[0][0].old_bal + oldFeeDetails[0][0].uni_fee + oldFeeDetails[0][0].inst_fee + oldFeeDetails[0][0].tut_fee;
+                        old_fee_fixed = oldFeeDetails[0].old_bal + oldFeeDetails[0].uni_fee + oldFeeDetails[0].inst_fee + oldFeeDetails[0].tut_fee;
                     } else {
-                        old_fee_fixed = oldFeeDetails[0][0].uni_fee + oldFeeDetails[0][0].tut_fee + oldFeeDetails[0][0].nasa_fee + oldFeeDetails[0][0].libry_fee;
+                        old_fee_fixed = oldFeeDetails[0].uni_fee + oldFeeDetails[0].tut_fee + oldFeeDetails[0].nasa_fee + oldFeeDetails[0].libry_fee;
                     }
 
-                    let headWiseChangedFeeAmount = changeFeeDetails[0][0]['paid_amt'].split("|");
+                    let headWiseChangedFeeAmount = changeFeeDetails[0]['paid_amt'].split("|");
                     let uni_fee = parseFloat(headWiseChangedFeeAmount[0]);
                     let tut_fee = parseFloat(headWiseChangedFeeAmount[1]);
                     let new_fee_fixed = uni_fee + tut_fee;
                     let balance = new_fee_fixed;
                     let totalPaidAmont = 0;
-                    let oldTransactions = await promisePool.query(`SELECT id,paid_amt,bal,fee_id FROM fee_transactions f WHERE  fee_id = '${oldFeeDetails[0][0].id}'  AND fee_type NOT IN('0','-1') `);
+                    let oldTransactions = await runQuery(`SELECT id,paid_amt,bal,fee_id FROM fee_transactions f WHERE  fee_id = '${oldFeeDetails[0].id}'  AND fee_type NOT IN('0','-1') `);
                     let trUpdate = 0;
-                    for (let i = 0; i < oldTransactions[0].length; i++) {
-                        const element = oldTransactions[0][i];
+                    for (let i = 0; i < oldTransactions.length; i++) {
+                        const element = oldTransactions[i];
                         balance -= parseFloat(element.paid_amt);
                         totalPaidAmont += parseFloat(element.paid_amt);
-                        let updateTr1 = await promisePool.query(`UPDATE fee_transactions SET old_bal='${element.bal}',bal='${balance}',remark='old fee fixed ${old_fee_fixed} AND new fee fixed ${new_fee_fixed}' WHERE id='${element.id}'`);
-                        if (updateTr1[0].affectedRows > 0) {
-                            let updateTr2 = await promisePool.query(`UPDATE fee_details SET paid_fee='${totalPaidAmont}',bal='${balance}'  WHERE id='${element.fee_id}'`)
-                            if (updateTr2[0].affectedRows > 0) {
+                        let updateTr1 = await runQuery(`UPDATE fee_transactions SET old_bal='${element.bal}',bal='${balance}',remark='old fee fixed ${old_fee_fixed} AND new fee fixed ${new_fee_fixed}' WHERE id='${element.id}'`);
+                        if (updateTr1.affectedRows > 0) {
+                            let updateTr2 = await runQuery(`UPDATE fee_details SET paid_fee='${totalPaidAmont}',bal='${balance}'  WHERE id='${element.fee_id}'`)
+                            if (updateTr2.affectedRows > 0) {
                                 trUpdate++;
                             }
                         }
                     }
                     if (trUpdate > 0) {
-                        let updateTr3 = await promisePool.query(`UPDATE fee_details SET uni_fee='${uni_fee}',tut_fee='${tut_fee}'  WHERE id='${oldFeeDetails[0][0].id}'`);
-                        if (updateTr3[0].affectedRows > 0) {
+                        let updateTr3 = await runQuery(`UPDATE fee_details SET uni_fee='${uni_fee}',tut_fee='${tut_fee}'  WHERE id='${oldFeeDetails[0].id}'`);
+                        if (updateTr3.affectedRows > 0) {
                             res.send(["Approved", "success"]);
                         } else {
                             res.send(["Transction Approved and old transaction balance updated but fee fixation not changed", "error"])
@@ -3748,7 +3788,7 @@ app.post('/addiamarks', async (req, res) => {
     // console.log(insert)
     await dbConnect();
     let checkRecord = await db.query(`SELECT id FROM nba_marks WHERE cid='${insert.cid}' AND scode='${insert.scode}' AND dv='${insert.dv}' AND internal='${insert.internal}' AND qno='${insert.qno}' AND academic_year='${insert.academic_year}' AND student_id='${insert.student_id}'`);
-
+    // console.log(checkRecord)
     if (checkRecord.length == 0) {
         let isInsert = await db.insert('nba_marks', insert);
         await dbDisconnect();
@@ -3838,7 +3878,7 @@ app.post('/getattainmentsheetia', async (req, res) => {
         return $al;
     }
     let attainmentLevelArray = [];
-    let a=0;
+    let a = 0;
     for (let index = 0; index < studentList.length; index++) {
         const data1 = studentList[index];
         table += `<tr key=${index}>
@@ -3858,7 +3898,7 @@ app.post('/getattainmentsheetia', async (req, res) => {
                 benchMarkTd += `<td>${targetValue}</td>`;
                 attainmentPercentageTd += `<td>${attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0"}</td>`;
                 attainmentValueTd += `<td>${getAttainmentLevel(attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0")}</td>`;
-                attainmentLevelArray[a]=getAttainmentLevel(attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0");
+                attainmentLevelArray[a] = getAttainmentLevel(attainmentMarks.length > 0 ? ((attainmentMarks[0].marks / studentList.length) * 100).toString().substring(0, 4) : "0");
                 a++;
             }
 
@@ -3889,47 +3929,47 @@ app.post('/getattainmentsheetia', async (req, res) => {
                                     </th>
                                 </tr>
                                 <tr>
-                                    <th colspan="${qpDetails.length+2}" class="text-center">
+                                    <th colspan="${qpDetails.length + 2}" class="text-center">
                                         Question No
                                     </th>
                                 </tr>
                                 <tr>`;
-                                
-                                    qpDetails.map((data, i) => {
-                                        table+= `<th>${data.qno}</th>`
-                                    })
-                                    
-                                table+=`<th>TOTAL</th>
+
+    qpDetails.map((data, i) => {
+        table += `<th>${data.qno}</th>`
+    })
+
+    table += `<th>TOTAL</th>
                                 <th>CO ATTAINMENT</th></tr>
                             </thead>
                             <tbody>`;
-                            for (let i = 0; i < cos.length; i++) {
-                                const element = cos[i];
-                                table+=`
+    for (let i = 0; i < cos.length; i++) {
+        const element = cos[i];
+        table += `
                                 <tr>
                                 <td>${element.cos}</td>`;
-                                let coAttainment = [];
-                                let c=0;
-                                for (let j = 0; j < qpDetails.length; j++) {
-                                    const element1 = qpDetails[j];
-                                    if(element.id == element1.co_id){
-                                        table+=`<td>${attainmentLevelArray[j]}</td>`
-                                        coAttainment[c]=attainmentLevelArray[j];
-                                        c++;
-                                    }else{
-                                        table+=`<td>-</td>`
-                                    }
-                                }
-                                let total = coAttainment.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
-                                let coAttained = 0;
-                                if(coAttainment.length!=0){
-                                    coAttained= total / coAttainment.length;
-                                }
-                                table+=`<td>${total}</td><td>${coAttained}</td>`;
-                                table+=`</tr>`;
-                                
-                            }
-                            table+=`</tbody>
+        let coAttainment = [];
+        let c = 0;
+        for (let j = 0; j < qpDetails.length; j++) {
+            const element1 = qpDetails[j];
+            if (element.id == element1.co_id) {
+                table += `<td>${attainmentLevelArray[j]}</td>`
+                coAttainment[c] = attainmentLevelArray[j];
+                c++;
+            } else {
+                table += `<td>-</td>`
+            }
+        }
+        let total = coAttainment.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+        let coAttained = 0;
+        if (coAttainment.length != 0) {
+            coAttained = total / coAttainment.length;
+        }
+        table += `<td>${total}</td><td>${coAttained}</td>`;
+        table += `</tr>`;
+
+    }
+    table += `</tbody>
                         </table>
                     </div>`;
     res.send(table);
@@ -3943,54 +3983,51 @@ app.post('/addco', async (req, res) => {
 
     for (let i = 0; i < data.coData.length; i++) {
         const element = data.coData[i];
-       if(element.id == ''){
-        let insert = {
-            fid:subjectDetails.fid,
-            cid:subjectDetails.cid,
-            did:subjectDetails.did,
-            scode:subjectDetails.scode,
-            dv:subjectDetails.dv,
-            co:element.co,
-            cos:element.cos,
-            stmt:element.stmt,
-            academic_year:element.academic_year,
-        };
+        if (element.id == '') {
+            let insert = {
+                fid: subjectDetails.fid,
+                cid: subjectDetails.cid,
+                did: subjectDetails.did,
+                scode: subjectDetails.scode,
+                dv: subjectDetails.dv,
+                co: element.co,
+                cos: element.cos,
+                stmt: element.stmt,
+                academic_year: element.academic_year,
+            };
 
-        await dbConnect();
-        let isInsert = await db.insert('nba_co', insert);
-        await dbConnect();
-        if(isInsert.insertId > 0){
-            inserted++;
+            await dbConnect();
+            let isInsert = await db.insert('nba_co', insert);
+            await dbDisconnect();
+            if (isInsert.insertId > 0) {
+                inserted++;
+            }
+        } else {
+            let insert = {
+                fid: subjectDetails.fid,
+                cid: subjectDetails.cid,
+                did: subjectDetails.did,
+                scode: subjectDetails.scode,
+                dv: subjectDetails.dv,
+                co: element.co,
+                cos: element.cos,
+                stmt: element.stmt,
+                academic_year: element.academic_year,
+            };
+
+            await dbConnect();
+            let isInsert = await db.update('nba_co', insert, { id: element.id });
+            await dbDisconnect();
+            if (isInsert.insertId > 0) {
+                inserted++;
+            }
         }
-       }else{
-        let insert = {
-            fid:subjectDetails.fid,
-            cid:subjectDetails.cid,
-            did:subjectDetails.did,
-            scode:subjectDetails.scode,
-            dv:subjectDetails.dv,
-            co:element.co,
-            cos:element.cos,
-            stmt:element.stmt,
-            academic_year:element.academic_year,
-        };
 
-        await dbConnect();
-        let isInsert = await db.update('nba_co', insert, { id: element.id });
-        await dbConnect();
-        if(isInsert.insertId > 0){
-            inserted++;
-        }  
-       }
-        
     }
 
-    if(inserted > 0){
-        res.send(["Record Added","success"]);
-    }else{
-        res.send(["Record Not Added","error"]);
+    if (inserted > 0) {
+        res.send(["Record Added", "success"]);
+    } else {
+        res.send(["Record Not Added", "error"]);
     }
-
-
-    
 });

@@ -11,7 +11,7 @@ export default function CoView(props) {
             id: state.subject
         })
             .then((response) => {
-                setSubjectDetails(response.data[0]);
+                setSubjectDetails(response.data);
             });
 
         axios.post(`${props.baseURL}/getcoadded`, {

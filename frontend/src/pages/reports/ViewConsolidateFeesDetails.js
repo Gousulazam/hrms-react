@@ -8,6 +8,7 @@ export default function ViewConsolidateFeesDetails(props) {
 
     const fetchDetails = async (e) => {
         e.preventDefault();
+        setResult(props.loader());
         await axios.post(`${props.baseURL}/getconsolidatefeesdetails`, {
             usn: usn,
             cid: props.userDetails.cid

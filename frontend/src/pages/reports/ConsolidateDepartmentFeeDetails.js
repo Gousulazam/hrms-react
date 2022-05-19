@@ -8,12 +8,14 @@ export default function ConsolidateDepartmentFeeDetails(props) {
     const [result, setResult] = useState();
     const coAdd = async (e) => {
         e.preventDefault();
+        setResult(props.loader());
         await axios.post(`${props.baseURL}/getconsolidatedepartmentdetails`, {
             cid: props.userDetails.cid,
             academic_year:academicYear
         })
             .then((response) => {
                 if (response.data.length > 0) {
+                    
                     setResult(response.data);
                 }
             });

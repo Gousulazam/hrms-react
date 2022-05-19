@@ -21,7 +21,9 @@ export default function DeleteApprovalTbody(props) {
             admin:appAdmin,
         })
             .then((response) => {
-                swal(response.data[0],"",response.data[1]);
+                swal(response.data[0],"",response.data[1]).then(()=>{
+                    window.location.reload();
+                });
             });
     };
     const setValues=(e) =>{
